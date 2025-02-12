@@ -287,7 +287,26 @@ in the next set of members in the \texttt{wout} group:
        Plasma volume.
  \item \texttt{b0} \\
        Type: \texttt{double} \\
-       Average magnetic field in the plasma.
+       Toroidal magnetic flux density from poloidal current and magnetic axis position at $\varphi=0$:
+       \begin{equation}
+        \texttt{b0} = F_\psi(0) / R(s=0, \theta=0, \varphi=0)
+       \end{equation}
+       with the poloidal current at the magnetic axis~$F_\psi(0)$
+       (obtained by linear extrapolation from the innermost two half-grid points):
+       \begin{equation}
+        F_\psi(0) = \frac{3}{2} \langle B_\varphi \rangle(s_{0.5}) - \frac{1}{2} \langle B_\varphi \rangle(s_{1.5})
+       \end{equation}
+       and in there the covariant magnetic field component~$B_\varphi$ averaged over flux surfaces:
+       \begin{equation}
+        \langle B_\varphi \rangle (s)= \int\limits_0^{2 \pi} \int\limits_0^{2 \pi} B_\varphi(s ,\theta, \varphi) \,\mathrm{d}\theta \,\mathrm{d}\varphi
+       \end{equation}
+       (\texttt{bvcoH} in VMEC++, on half-grid).
+       One can think of this as approximating the toroidal field as originating from a line current along the $z$ axis,
+       which combines all poloidal currents in the coils and the plasma,
+       and then asking what magnetic field at the radius of the magnetic axis at $\varphi=0$ this would create.
+       Because the quantity is divided by $R$ at $\varphi = 0$,
+       it is not a toroidal average and should not be used when, e.g., scaling equilibria based on magnetic field strength
+       \footnote{Thanks to Damien Huet for stressing this important point.}.
  \item \texttt{rmax\_surf} \\
        Type: \texttt{double} \\
        Maximum of $R$ on the plasma boundary over all grid points.
