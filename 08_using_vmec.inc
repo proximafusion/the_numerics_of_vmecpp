@@ -1,0 +1,718 @@
+\chapter{Using VMEC}
+
+\section{Representation of Flux Surface Geometry}
+%
+An inverse representation is used to describe the flux surface geometry in VMEC++.
+This means that the (cylindrical) coordinates of the flux surface geometry
+are expressed as functions of the flux coordinates.
+\\
+The three flux coordinates are:
+\begin{itemize}
+ \item $s$ is the normalized toroidal flux enclosed in a given flux surface.
+       Its value is $0$ at the magnetic axis (in the core of the plasma) and $1$ at the last closed flux surface.
+ \item $\theta$ is the poloidal angle-like coordinate.
+       It increases by $2 \pi$ once around the torus the short way, i.e., wristband-like.
+ \item $\varphi$ is the toroidal angle
+       and it coincides with the angle coordinate in a cylindrical coordinate system.
+       It increases by $2 \pi$ once around the torus the long way.
+\end{itemize}
+The full toroidal angle $\varphi$ is assumed to be made up of $n_\textrm{fp}$ identical, rotated, field periods of the plasma.
+The toroidal coordinate in each field period is then
+\begin{equation}
+ \zeta = n_\textrm{fp} \varphi \, ,
+\end{equation}
+such that $\zeta$ goes from $0$ to $2 \pi$ over a single field period.
+
+Having the flux coordinates $(s, \theta, \zeta)$, the cylindrical coordinates~$(R, \varphi, Z)$ of points on the flux surfaces
+are given by:
+\begin{align}
+ R       =&\, R(s, \theta, \zeta) \nonumber \\
+ \varphi =&\, \zeta / n_\textrm{fp} \\
+ Z       =&\, Z(s, \theta, \zeta) \nonumber \, .
+\end{align}
+A set of discrete flux surfaces is considered in VMEC++.
+This is reflected in the radial coordinate $s$, which only takes on discrete values in VMEC++.
+The number of flux surfaces is an input parameter, which is called \texttt{ns}.
+The individual flux surfaces are then (usually) located at equal increments in $s$:
+\begin{equation}
+ s_j = \frac{j}{\texttt{ns} - 1} \textrm{ for } j \in \{0, 1, ..., \texttt{ns} - 1\} \, .
+\end{equation}
+Toroidal symmetry is taken into account for the number of field periods, $n_\textrm{fp}$.
+
+For each discrete flux surface, the coordinates $R$ and $Z$ on it are represented as two-dimensional Fourier series:
+\begin{align}
+ R(s_j, \theta, \zeta) =&\, \sum\limits_{m, n}
+   \left[ \hat{R}_{j, m, n}^{\cos} \cos(m \theta - n \zeta) +
+          \hat{R}_{j, m, n}^{\sin} \sin(m \theta - n \zeta) \right] \label{eqn:r_full} \\
+ Z(s_j, \theta, \zeta) =&\, \sum\limits_{m, n}
+   \left[ \hat{Z}_{j, m, n}^{\cos} \cos(m \theta - n \zeta) +
+          \hat{Z}_{j, m, n}^{\sin} \sin(m \theta - n \zeta) \right] \label{eqn:z_full} \, .
+\end{align}
+In case of stellarator symmetry, half of the Fourier coefficients can be omitted
+and the flux surface geometry is given by:
+\begin{align}
+ R(s_j, \theta, \zeta) =&\, \sum\limits_{m, n}
+   \hat{R}_{j, m, n}^{\cos} \cos(m \theta - n \zeta) \label{eqn:r_symm} \\
+ Z(s_j, \theta, \zeta) =&\, \sum\limits_{m, n}
+   \hat{Z}_{j, m, n}^{\sin} \sin(m \theta - n \zeta) \textsl{}\label{eqn:z_symm} \, .
+\end{align}
+The summation over $m$ and $n$ goes as follows.
+The poloidal mode number $m$ goes from $0$ to $\texttt{mpol} - 1$.
+For $m = 0$, only non-negative toroidal mode numbers are taken into account,
+thus $n \in \{0, 1, ..., \texttt{ntor}\}$.
+For $m > 0$, all toroidal mode numbers are taken into account,
+thus $n \in \{-\texttt{ntor}, ..., -1, 0, 1, ..., \texttt{ntor}\}$.
+This scheme serves to remove the redundancy (and associated consistency requirement) among the Fourier coefficients with $m = 0$.
+
+The geometry of the magnetic axis is represented in a similar functional form.
+The axis is a line along the toroidal direction and thus has to variation in the poloidal direction.
+Therefore, it is only parameterized in the toroidal direction.
+
+The Fourier series for $R$ and $Z$ of the flux surface geometry
+are typically implemented as follows:
+\begin{align}
+ R(s_j, \theta, \varphi) =& \sum_{\texttt{mn} = 0}^{\texttt{mnmax}}
+   \left[   R_\texttt{mn}^\mathrm{cos}(s_j) \cos(\texttt{xm[mn]} \theta - \texttt{xn[mn]} \varphi)
+          + R_\texttt{mn}^\mathrm{sin}(s_j) \sin(\texttt{xm[mn]} \theta - \texttt{xn[mn]} \varphi) \right] \\
+ Z(s_j, \theta, \varphi) =& \sum_{\texttt{mn} = 0}^{\texttt{mnmax}}
+   \left[   Z_\texttt{mn}^\mathrm{sin}(s_j) \sin(\texttt{xm[mn]} \theta - \texttt{xn[mn]} \varphi)
+          + Z_\texttt{mn}^\mathrm{cos}(s_j) \cos(\texttt{xm[mn]} \theta - \texttt{xn[mn]} \varphi) \right]
+\end{align}
+on, for example, the $j$-th flux surface with flux surface label (i.e., radial coordinate)~$s_j$.
+%
+The dataset names of these Fourier coefficients in the \texttt{wout} group
+of the main VMEC++ output file are listed in Tab.~\ref{tab:fc_rz}.
+\begin{table}[h]
+ \centering
+ \begin{tabular}{|c|c|c|}
+  \hline
+  symbol & dataset name & stellarator-symmetric? \\
+  \hline
+  $R_\texttt{mn}^\mathrm{cos}$ & \texttt{rmnc} & y \\
+  $Z_\texttt{mn}^\mathrm{sin}$ & \texttt{zmns} & y \\
+  \hline
+  $R_\texttt{mn}^\mathrm{sin}$ & \texttt{rmns} & n \\
+  $Z_\texttt{mn}^\mathrm{cos}$ & \texttt{zmnc} & n \\
+  \hline
+ \end{tabular}
+ \caption{Dataset names for the Fourier coefficient arrays in the \texttt{wout} group
+          that describe the cylindrical coordinates~$R$ and $Z$ of the flux-surface geometry.}
+ \label{tab:fc_rz}
+\end{table}
+
+\section{Representation of Magnetic Field}
+The magnetic field~$\mathbf{B}$ in the VMEC++ outputs
+is available in both a contravariant form
+and a covariant form.
+The contravariant form is defined as follows:
+\begin{equation}
+ \mathbf{B} = B^\theta \hat{\mathbf{e}}_\theta + B^\zeta \hat{\mathbf{e}}_\zeta
+\end{equation}
+and the covariant form is defined as follows:
+\begin{equation}
+ \mathbf{B} = B_s \nabla s + B_\theta \nabla \theta + B_\zeta \nabla \zeta \, .
+\end{equation}
+The components $B^\theta$, $B^\zeta$, $B_\theta$ and $B_\zeta$
+are available on the radial half-grid.
+The component $B_s$ is available on the radial full-grid.
+%
+All these components are expressed as two-dimensional Fourier series
+to represent their scalar, real values on a discrete set of flux surfaces:
+\begin{equation}
+ X(s_j, \theta, \varphi) =
+ \sum\limits_{m} \sum\limits_{n}
+   \left[   \hat{X}_{mn}^\textrm{cos}(s_j) \cos(m \theta - n n_\textrm{fp} \varphi)
+          + \hat{X}_{mn}^\textrm{sin}(s_j) \sin(m \theta - n n_\textrm{fp} \varphi) \right]
+\end{equation}
+where $X$ is one of $\{B^\theta, B^\zeta, B_s, B_\theta, B_\zeta\}$
+and $\hat{X}_{mn}^\textrm{cos}$ ($\hat{X}_{mn}^\textrm{sin}$)
+are the Fourier coefficients for the cosine (sine) basis functions, respectively,
+on the $j$-th flux surface with flux surface label (i.e., radial coordinate)~$s_j$.
+The number of toroidal field periods is denoted by~$n_\textrm{fp}$ here.
+The poloidal angle-like coordinate~$\theta$ spans from $0$ to $2 \pi$
+the short way around the torus.
+The toroidal angle (indentical with the cylindrical angle)~$\varphi$
+spans from $0$ to $2 \pi$ once around the machine.
+
+The summation over $m$ and $n$ is to be taken over all relevant mode number combinates
+needed to represent the magnetic field components.
+Requiring that the components are real-valued
+allows to make use of certain symmetries, reducing the number of required mode number
+combinations to take into account.
+%
+In VMEC++, a linear mode index is used in conjunction with mode number arrays
+for convenient one-dimensional summation:
+\begin{align}
+ X(s_j, \theta, \varphi) =
+ \sum\limits_{\texttt{mn}=0}^{\texttt{mnmax\_nyq} - 1}
+   \Bigl[ &\phantom{+}~ \hat{X}_\texttt{mn}^\textrm{cos}(s_j) \cos(\texttt{xm}[\texttt{mn}] \theta - \texttt{xn}[\texttt{mn}] \varphi) \nonumber \\
+         ~&         +   \hat{X}_\texttt{mn}^\textrm{sin}(s_j) \sin(\texttt{xm}[\texttt{mn}] \theta - \texttt{xn}[\texttt{mn}] \varphi) \Bigr] \, .
+\end{align}
+%
+It is noted that a larger number of Fourier coefficients~($\texttt{mnmax\_nyq}$)
+is used to describe the magnetic field components,
+than is used to describe the flux surface geometry~($\texttt{mnmax}$).
+%
+The dataset names of these Fourier coefficients in the \texttt{wout} group
+of the main VMEC++ output file are listed in Tab.~\ref{tab:fc_gb}.
+Note that the notation~$B = \vert\mathbf{B}\vert$
+has been used for the magnetic field strength.
+\begin{table}[h]
+ \centering
+ \begin{tabular}{|c|c|c|}
+  \hline
+  symbol & dataset name & stellarator-symmetric? \\
+  \hline
+  $\sqrt{g}_\texttt{mn}^\mathrm{cos}$   & \texttt{gmnc}     & y \\
+  $B_\texttt{mn}^\mathrm{cos}$          & \texttt{bmnc}     & y \\
+  $B_{\theta,\texttt{mn}}^\mathrm{cos}$ & \texttt{bsubumnc} & y \\
+  $B_{\zeta,\texttt{mn}}^\mathrm{cos}$  & \texttt{bsubvmnc} & y \\
+  $B_{s,\texttt{mn}}^\mathrm{sin}$      & \texttt{bsubsmns} & y \\
+  $B_\texttt{mn}^{\theta,\mathrm{cos}}$ & \texttt{bsupumnc} & y \\
+  $B_\texttt{mn}^{\zeta,\mathrm{cos}}$  & \texttt{bsupvmnc} & y \\
+  \hline
+  $\sqrt{g}_\texttt{mn}^\mathrm{sin}$   & \texttt{gmns}     & n \\
+  $B_\texttt{mn}^\mathrm{sin}$          & \texttt{bmns}     & n \\
+  $B_{\theta,\texttt{mn}}^\mathrm{sin}$ & \texttt{bsubumns} & n \\
+  $B_{\zeta,\texttt{mn}}^\mathrm{sin}$  & \texttt{bsubvmns} & n \\
+  $B_{s,\texttt{mn}}^\mathrm{cos}$      & \texttt{bsubsmnc} & n \\
+  $B_\texttt{mn}^{\theta,\mathrm{sin}}$ & \texttt{bsupumns} & n \\
+  $B_\texttt{mn}^{\zeta,\mathrm{sin}}$  & \texttt{bsupvmns} & n \\
+  \hline
+ \end{tabular}
+ \caption{Dataset names for the Fourier coefficient arrays in the \texttt{wout} group
+          that describe the Jacobian, the magnetic field strength,
+          and the co- and contravariant magnetic field components.}
+ \label{tab:fc_gb}
+\end{table}
+
+
+\section{Re-Computing the Rotational Transform Profile}
+The contravariant magnetic field components are defined as follows in VMEC~\cite{lee_1988}:
+\begin{align}
+ B^{\theta}  =&\, \frac{\Phi'}{\sqrt{g}} \left( \iota - \frac{\partial \lambda}{\partial \varphi} \right) \label{eqn:bsupu} \\
+ B^{\varphi} =&\, \frac{\Phi'}{\sqrt{g}} \left(    1  + \frac{\partial \lambda}{\partial \theta } \right) \label{eqn:bsupv} \, .
+\end{align}
+The covariant magnetic field components can be computed from these using the metric elements:
+\begin{align}
+ B_{\theta } =&\, g_{\theta  \theta} B^{\theta} + g_{\theta  \varphi} B^{\varphi} \label{eqn:bsubu} \\
+ B_{\varphi} =&\, g_{\theta \varphi} B^{\theta} + g_{\varphi \varphi} B^{\varphi} \label{eqn:bsubv} \, .
+\end{align}
+The radial profile of enclosed net toroidal current is given by:
+\begin{align}
+ \frac{\mu_0}{2 \pi} I_\zeta
+ =&\, \langle B_\theta \rangle \label{eqn:curtor} \, .
+\end{align}
+where $\langle . \rangle$ is an average over the corresponding flux surface:
+\begin{equation}
+ \langle B_\theta \rangle = \frac{1}{(2 \pi)^2} \int\limits_{0}^{2 \pi} \int\limits_{0}^{2 \pi}
+        B_\theta(s, \theta, \varphi) \,\mathrm{d}\theta \,\mathrm{d}\varphi \, .
+\end{equation}
+%
+Now, \eqn{bsupu} and \eqn{bsupv} are inserted into \eqn{bsubu}:
+\begin{align}
+ B_{\theta } =&\, \frac{\Phi'}{\sqrt{g}} \left[
+       g_{\theta  \theta}  \left( \iota - \frac{\partial \lambda}{\partial \varphi} \right)
+     + g_{\theta  \varphi} \left(    1  + \frac{\partial \lambda}{\partial \theta } \right) \right] \, .
+\end{align}
+This in turn is inserted into \eqn{curtor}:
+\begin{equation}
+ \frac{\mu_0}{2 \pi} I_\zeta
+ = \left\langle
+     \frac{\Phi'}{\sqrt{g}} \left[
+       g_{\theta  \theta}  \left( \iota - \frac{\partial \lambda}{\partial \varphi} \right)
+     + g_{\theta  \varphi} \left(    1  + \frac{\partial \lambda}{\partial \theta } \right) \right] \right\rangle \, .
+\end{equation}
+The linearity of the integral allows to split this term into several parts.
+Also, the quantities $\Phi'$ and $\iota$ only depend on the radial coordinate
+and can be pulled out of the surface-averaging operator.
+It thus follows:
+\begin{equation}
+ \frac{\mu_0}{2 \pi} \frac{I_\zeta}{\Phi'}
+ =
+ \iota \left\langle \frac{g_{\theta  \theta}}{\sqrt{g}} \right\rangle
+ + \left\langle - \frac{g_{\theta  \theta }}{\sqrt{g}} \frac{\partial \lambda}{\partial \varphi}
+                + \frac{g_{\theta  \varphi}}{\sqrt{g}} \frac{\partial \lambda}{\partial \theta } \right\rangle
+ + \left\langle \frac{g_{\theta  \varphi}}{\sqrt{g}} \right\rangle \, .
+\end{equation}
+This can be re-arranged for the iota profile:
+\begin{equation}
+ \iota \left\langle \frac{g_{\theta  \theta}}{\sqrt{g}} \right\rangle
+ =
+ \frac{\mu_0}{2 \pi} \frac{I_\zeta}{\Phi'}
+ - \left\langle - \frac{g_{\theta  \theta }}{\sqrt{g}} \frac{\partial \lambda}{\partial \varphi}
+                + \frac{g_{\theta  \varphi}}{\sqrt{g}} \frac{\partial \lambda}{\partial \theta } \right\rangle
+ - \left\langle \frac{g_{\theta  \varphi}}{\sqrt{g}} \right\rangle \label{eqn:iota_eqn} \, .
+\end{equation}
+The quantity $\lambda$ is represented as a Fourier series in VMEC
+(with only $\sin$-coefficients assuming stellarator-symmetry):
+\begin{equation}
+ \lambda(s, \theta, \varphi)
+ =
+ \sum\limits_{m,n}
+   \hat{\lambda}^{\sin}_{mn}(s)
+   \sin\left(m \theta - n n_\textrm{fp} \varphi \right) \, .
+\end{equation}
+This yields analytical derivatives in both tangential directions:
+\begin{align}
+ \frac{\partial \lambda}{\partial \theta}
+ =&\, \sum\limits_{m,n}
+        m
+        \hat{\lambda}^{\sin}_{mn}
+        \cos\left(m \theta - n n_\textrm{fp} \varphi \right) \label{eqn:lu} \\
+ \frac{\partial \lambda}{\partial \varphi}
+ =&\, \sum\limits_{m,n}
+        (-n n_\textrm{fp})
+        \hat{\lambda}^{\sin}_{mn}
+        \cos\left(m \theta - n n_\textrm{fp} \varphi \right) \label{eqn:lv} \, .
+\end{align}
+\eqn{lu} and \eqn{lv} are now inserted into \eqn{iota_eqn}.
+The Fourier coefficients can be regarded as functions
+of only the radial coordinate $s$ and can therefore be pulled out of the surface averaging operator.
+\begin{equation}
+ \iota \left\langle \frac{g_{\theta  \theta}}{\sqrt{g}} \right\rangle
+ =
+ - \sum\limits_{m,n} \left\langle \left(- \frac{g_{\theta  \theta }}{\sqrt{g}} (-n n_\textrm{fp})
+                                        + \frac{g_{\theta  \varphi}}{\sqrt{g}}   m
+                                  \right) \cos\left(m \theta - n n_\textrm{fp} \varphi \right)
+                      \right\rangle
+                      \hat{\lambda}^{\sin}_{mn}
+ - \left\langle \frac{g_{\theta  \varphi}}{\sqrt{g}} \right\rangle
+ + \frac{\mu_0}{2 \pi} \frac{I_\zeta}{\Phi'} \label{eqn:full_iota} \, .
+\end{equation}
+A matrix $\mathbf{A}$ with entries $a_{mn}$ and vectors $b$ and $c$ are now introduced with
+\begin{equation}
+ a_{mn} = \left\langle \left(  \frac{g_{\theta  \theta }}{\sqrt{g}} n n_\textrm{fp}
+                                   + \frac{g_{\theta  \varphi}}{\sqrt{g}} m
+                             \right) \cos\left(m \theta - n n_\textrm{fp} \varphi \right) \right\rangle
+          /
+          \left\langle \frac{g_{\theta  \theta}}{\sqrt{g}} \right\rangle \label{eqn:a_mat}
+\end{equation}
+as well as
+\begin{equation}
+ b = \left\langle \frac{g_{\theta  \varphi}}{\sqrt{g}} \right\rangle
+     /
+     \left\langle \frac{g_{\theta  \theta}}{\sqrt{g}} \right\rangle \label{eqn:b_vec} \, .
+\end{equation}
+and
+\begin{equation}
+ c = \frac{\mu_0}{2 \pi} \frac{I_\zeta}{\Phi'}
+     /
+     \left\langle \frac{g_{\theta  \theta}}{\sqrt{g}} \right\rangle \label{eqn:c_vec} \, .
+\end{equation}
+This allows to write \eqn{full_iota} as a linear system of equations:
+\begin{equation}
+ \iota = -\sum\limits_{m,n} a_{mn} \hat{\lambda}^{\sin}_{mn} - b + c \label{eqn:iota_from_linear_eqns} \, .
+\end{equation}
+%
+
+\subsection{Numerical Implementation}
+The objective of this section is go detail out the computation of
+the quantites from \eqn{a_mat}, \eqn{b_vec}, \eqn{c_vec} for evaluation of $\iota$
+from \eqn{iota_from_linear_eqns}.
+%
+The rotational transform profile is on the half-grid in VMEC.
+Also, the metric elements, the Jacobian and the enclosed toroidal current as well as the toroidal flux derivative
+are available on the half-grid in VMEC.
+The state variable $\lambda$ is on the full-grid in VMEC
+and needs to be averaged onto the half-grid before being used in \eqn{iota_from_linear_eqns}.
+
+
+
+
+\subsection{Comparison with Mercier's Expression}
+Mercier's expression for the rotational transform on the magnetic axis
+of a stellarator is as follows:
+\begin{equation}
+ \iota =
+ \frac{1}{2 \pi} \int\limits_{0}^{L}
+   \frac{1}{\cosh \eta} \left[
+       \frac{\mu_0 J}{2 B_0}
+     - \left(\cosh \eta - 1 \right) d'
+     - \tau
+  \right]  \,\mathrm{d}l - N
+\end{equation}
+The three contributions in this expression
+are due to the toroidal current,
+a poloidal rotation of the poloidal cross section of the flux surfaces close to the axis
+and torsion of the magnetic axis.
+%
+$\lambda$ is identically zero on the magnetic axis,
+because the magnetic field is purely toroidal there and has no variation over the surface
+of the axis, because the axis has no surface.
+%
+It is expected that the expression in \eqn{iota_from_linear_eqns} should approach Mercier's result
+when moving towards the magnetic axis.
+%
+Here, $\mu_0 J$ is the current density on the magnetic axis.
+
+
+
+
+\section{Current Density from VMEC}
+The current density from VMEC is computed using Ampere's law:
+\begin{equation}
+ \mathbf{j} = \frac{1}{\mu_0} \nabla \times \mathbf{B} \, .
+\end{equation}
+We start from the magnetic field~$\mathbf{B}$ in its covariant form:
+\begin{equation}
+ \mathbf{B} = B_s \nabla s + B_\theta \nabla \theta + B_\zeta \nabla \zeta \, .
+\end{equation}
+This allows to compute the contravariant components of the current density~$\mathbf{j}$ as follows:
+\begin{equation}
+ j^i = \frac{1}{\mu_0} \frac{1}{\sqrt{g}} \left[ \frac{B_k}{\partial u^j} - \frac{B_j}{\partial u^k} \right] , \quad (i,j,k) \textrm{ cyc. } (s,\theta,\zeta) \, .
+\end{equation}
+The current density is computed mostly to act as a source term in the Biot-Savart volume integrals.
+There, the Jacobian~$\sqrt{g}$ is required in the integral.
+It is therefore customary to compute~$\mathbf{j} \sqrt{g}$:
+\begin{equation}
+ j^i \sqrt{g} = \frac{1}{\mu_0} \left( \frac{B_k}{\partial u^j} - \frac{B_j}{\partial u^k} \right) , \quad (i,j,k) \textrm{ cyc. } (s,\theta,\zeta) \, .
+\end{equation}
+The concrete contravariant components of the current density are thus:
+\begin{align}
+ j^s      \sqrt{g} =&\, \frac{1}{\mu_0} \left( \frac{\partial B_\zeta }{\partial \theta} - \frac{\partial B_\theta}{\partial \zeta } \right) \nonumber \\
+ j^\theta \sqrt{g} =&\, \frac{1}{\mu_0} \left( \frac{\partial B_s     }{\partial \zeta } - \frac{\partial B_\zeta }{\partial s     } \right) \label{eqn:currx} \\
+ j^\zeta  \sqrt{g} =&\, \frac{1}{\mu_0} \left( \frac{\partial B_\theta}{\partial s     } - \frac{\partial B_s     }{\partial \theta} \right) \nonumber
+\end{align}
+In VMEC, the current density is assumed to be only tangential to the flux surfaces.
+Hence, $j^s = 0$ is assumed and we only consider $j^\theta$ and $j^\zeta$ in the following.
+The covariant components of the magnetic field are available as two-dimensional Fourier series:
+\begin{equation}
+ B_i(s, \theta, \zeta) = \sum\limits_{m,n} \left[
+   \hat{B}^\textrm{cos}_{i,m,n}(s) \cos(m \theta - n \zeta) +
+   \hat{B}^\textrm{sin}_{i,m,n}(s) \sin(m \theta - n \zeta)
+ \right] \, .
+\end{equation}
+This allows to perform the tangential derivatives in \eqn{currx} analytically:
+\begin{align}
+ \frac{\partial B_i}{\partial \theta}(s, \theta, \zeta)
+ =&\, \sum\limits_{m,n} \left[
+   \hat{B}^\textrm{cos}_{i,m,n}(s) m (-\sin)(m \theta - n \zeta) +
+   \hat{B}^\textrm{sin}_{i,m,n}(s) m   \cos (m \theta - n \zeta)
+ \right] \nonumber \\ ~
+ =&\, \sum\limits_{m,n} \left[
+   \left(-m \hat{B}^\textrm{cos}_{i,m,n}(s)\right) \sin(m \theta - n \zeta) +
+   \left( m \hat{B}^\textrm{sin}_{i,m,n}(s)\right) \cos(m \theta - n \zeta)
+ \right] \\
+ \frac{\partial B_i}{\partial \zeta}(s, \theta, \zeta)
+ =&\, \sum\limits_{m,n} \left[
+   \hat{B}^\textrm{cos}_{i,m,n}(s) (-n) (-\sin)(m \theta - n \zeta) +
+   \hat{B}^\textrm{sin}_{i,m,n}(s) (-n) \cos(m \theta - n \zeta)
+ \right] \nonumber \\ ~
+ =&\, \sum\limits_{m,n} \left[
+   \left( n \hat{B}^\textrm{cos}_{i,m,n}(s)\right) \sin(m \theta - n \zeta) +
+   \left(-n \hat{B}^\textrm{sin}_{i,m,n}(s)\right) \cos(m \theta - n \zeta)
+ \right] \, .
+\end{align}
+The quantities $j^i \sqrt{g} \equiv J^i$ are also Fourier-decomposed:
+\begin{equation}
+ J^i(s, \theta, \zeta) = \sum\limits_{m,n} \left[
+   \hat{J}^{i,\textrm{cos}}_{m,n}(s) \cos(m \theta - n \zeta) +
+   \hat{J}^{i,\textrm{sin}}_{m,n}(s) \sin(m \theta - n \zeta)
+ \right] \, .
+\end{equation}
+The orthogonality of the Fourier basis now allows to express \eqn{currx}
+for each of the coefficients independently:
+\begin{align}
+ \hat{J}^{\theta,\textrm{cos}}_{m,n}(s) =&\, \frac{1}{\mu_0} \left(
+   -n \hat{B}^\textrm{sin}_{s,m,n}(s) - \frac{\partial \hat{B}^\textrm{cos}_{\zeta,m,n}}{\partial s}
+ \right) \\
+ \hat{J}^{\theta,\textrm{sin}}_{m,n}(s) =&\, \frac{1}{\mu_0} \left(
+   ~ \,\, n \hat{B}^\textrm{cos}_{s,m,n}(s) - \frac{\partial \hat{B}^\textrm{sin}_{\zeta,m,n}}{\partial s}
+ \right) \\
+ \hat{J}^{\zeta,\textrm{cos}}_{m,n}(s) =&\, \frac{1}{\mu_0} \left(
+   \frac{\partial \hat{B}^\textrm{cos}_{\theta,m,n}}{\partial s} - m \hat{B}^\textrm{sin}_{s,m,n}(s)
+ \right) \\
+ \hat{J}^{\zeta,\textrm{sin}}_{m,n}(s) =&\, \frac{1}{\mu_0} \left(
+   \frac{\partial \hat{B}^\textrm{sin}_{\theta,m,n}}{\partial s} + m \hat{B}^\textrm{cos}_{s,m,n}(s)
+ \right)
+\end{align}
+If the current density components are desired to be computed on the full-grid,
+the radial derivatives can make use of the fact that $B_\theta$ and $B_\zeta$
+are exported on the half-grid from VMEC.
+The remaining covariant component $B_s$ is documented to written out on the full-grid,
+but it is actually computed on the half-grid as seen above.
+The radial interpolation of $B_s$ is regularized
+by including an additional factor of $\sqrt{s}$,
+which is divided out again after the the interpolation.
+
+\section{Field Line Following in VMEC}
+Straight-fieldline-coordinate are $(s, \theta^*, \zeta)$ in VMEC, where
+\begin{equation}
+ \theta^* = \theta + \lambda(s,\theta,\zeta) \label{eqn:theta_star}
+\end{equation}
+and $(s,\theta,\zeta)$ are the VMEC-internal coordinates
+that lead to spectrally-condensed Fourier representations for $R$ and $Z$.
+The stream function $\lambda$ is expressed as a Fourier series as well
+(considering only the stellarator-symmetric case for now):
+\begin{equation}
+ \lambda(s,\theta,\zeta) = \sum\limits_{m,n} \hat{\lambda}^\textrm{sin}_{m,n}(s) \sin(m \theta - n \zeta) \, .
+\end{equation}
+Assume a certain location $(s,\theta,\zeta)$ is to be mapped along the magnetic field lines
+to another toroidal location $\zeta'$.
+In order to achieve this, we need to:
+\begin{enumerate}
+ \item compute $\theta^*_\textrm{target} = \theta^*(s,\theta,\zeta)$ and
+ \item find $\theta'$ such that $\theta^*(s,\theta',\zeta') = \theta^*_\textrm{target}$.
+\end{enumerate}
+The first point is done by simply evaluating \eqn{theta_star}.
+For the second step, a non-linear root-finding method can be employed to
+find the root of the following objective function:
+\begin{equation}
+ f(\theta') = \theta^*(s,\theta',\zeta') - \theta^*_\textrm{target} \, . \label{eqn:theta_star_objective}
+\end{equation}
+It can be safely assumed that there exists only one solution
+and furthermore, $\theta^*$ can be assumed to be monotonic with respect to $\theta$.
+This allows to use a Newton method for solving \eqn{theta_star_objective}.
+The Newton method needs derivate information, which can be computed analytically:
+\begin{equation}
+ \frac{\partial f}{\partial \theta}(s,\theta',\zeta')
+ =
+ \frac{\partial \theta^*}{\partial \theta}(s,\theta',\zeta')
+ =
+ 1 + \frac{\partial \lambda}{\partial \theta}(s,\theta',\zeta') \, . \label{eqn:df_dthetap}
+\end{equation}
+The derivative of $\lambda$ can be computed analytically as well:
+\begin{equation}
+ \frac{\partial \lambda}{\partial \theta}(s,\theta',\zeta')
+ =
+ \sum\limits_{m,n} m \hat{\lambda}^\textrm{sin}_{m,n}(s) \cos(m \theta' - n \zeta') \, .
+\end{equation}
+It is expected that the objective function $f$ needs to be evaluated multiple times
+for different values of $\theta'$, but always at the given values of $s$ and $\zeta'$
+during the root-finding procedure.
+Thus, a transformed Fourier representation for $\lambda$ and $\partial \lambda/\partial \theta$
+can be derived:
+\begin{align}
+ \lambda\vert_{\zeta'}(\theta')
+ =&\,
+ \sum\limits_{m,n} \hat{\lambda}^\textrm{sin}_{m,n}(s) \sin(m \theta' - n \zeta') \nonumber \\ ~
+ =&\,
+ \sum\limits_{m} \sum\limits_{n} \hat{\lambda}^\textrm{sin}_{m,n}(s) \left[
+   \sin(m \theta') \cos(n \zeta') - \cos(m \theta') \sin(n \zeta')
+ \right] \nonumber \\ ~
+ =&\,
+ \sum\limits_{m} \left[
+   \Bigl(\sum\limits_{n} \hat{\lambda}^\textrm{sin}_{m,n}(s) \cos(n \zeta') \Bigr) \sin(m \theta') -
+   \Bigl(\sum\limits_{n} \hat{\lambda}^\textrm{sin}_{m,n}(s) \sin(n \zeta') \Bigr) \cos(m \theta')
+ \right] \nonumber \\ ~
+ =&\,
+ \sum\limits_{m} \left[
+   \hat{\lambda}^\textrm{sin}_{m,\zeta'}(s) \sin(m \theta') -
+   \hat{\lambda}^\textrm{cos}_{m,\zeta'}(s) \cos(m \theta')
+ \right] \label{eqn:lambda_at_zetap}
+\end{align}
+with
+\begin{align}
+ \hat{\lambda}^\textrm{sin}_{m,\zeta'}(s)
+ =&\, \sum\limits_{n} \hat{\lambda}^\textrm{sin}_{m,n}(s) \cos(n \zeta') \label{eqn:lmszeta} \\
+ \hat{\lambda}^\textrm{cos}_{m,\zeta'}(s)
+ =&\, \sum\limits_{n} \hat{\lambda}^\textrm{sin}_{m,n}(s) \sin(n \zeta') \label{eqn:lmczeta} \, .
+\end{align}
+The coefficients $\hat{\lambda}^\textrm{sin}_{m,\zeta'}(s)$ and $\hat{\lambda}^\textrm{cos}_{m,\zeta'}(s)$
+can be computed once for the given values of $s$ and $\zeta'$
+and then only the summation over $m$ in \eqn{lambda_at_zetap} has to be performed
+in every iteration of the root-finding algorithm.
+%
+Similarly, the computation of $\partial \lambda/\partial \theta$ can be streamlined,
+now already based on \eqn{lambda_at_zetap}:
+\begin{equation}
+ \frac{\partial \lambda}{\partial \theta}\vert_{\zeta'}(\theta')
+ =
+ \sum\limits_{m} \left[
+   m \hat{\lambda}^\textrm{sin}_{m,\zeta'}(s) \cos(m \theta') +
+   m \hat{\lambda}^\textrm{cos}_{m,\zeta'}(s) \sin(m \theta')
+ \right] \label{eqn:lu_at_zetap}
+\end{equation}
+Thus, the following algorithm can be used for field-line following on VMEC equilibria:
+\begin{enumerate}
+ \item Assume that $s$, $\theta$, $\zeta$ and $\zeta'$ are given.
+       Assume that the Fourier coefficients $\hat{\lambda}^\textrm{sin}_{m,n}(s)$ are given for all $m$ and $n$.
+       The desired tolerance is $\epsilon$.
+ \item Compute $\theta^*_\textrm{target}$ using \eqn{theta_star}.
+ \item For each $m$, pre-compute \eqn{lmszeta} and \eqn{lmczeta}.
+ \item Initialize $\theta' \leftarrow \theta$ as an initial guess.
+ \item Evaluate the objective function \eqn{theta_star_objective}:
+       \begin{enumerate}
+         \item Compute $\lambda\vert_{\zeta'}(\theta')$ using \eqn{lambda_at_zetap}.
+         \item Compute $\theta^*(\theta')$ using \eqn{theta_star}.
+         \item Compute $f(\theta')$ using \eqn{theta_star_objective}.
+       \end{enumerate}
+ \item Consider converged if $f(\theta') < \epsilon$ and exit if converged.
+ \item Compute the derivative of the objective function \eqn{df_dthetap}:
+       \begin{enumerate}
+         \item Compute $\partial \lambda / \partial \theta \vert_{\zeta'}(\theta')$ using \eqn{lu_at_zetap}.
+         \item Compute $\partial f / \partial \theta\vert_{\zeta'}(\theta')$ using \eqn{df_dthetap}.
+       \end{enumerate}
+ \item Perform the Newton step:
+       \begin{equation}
+         \theta' \leftarrow \theta' - \frac{f(\theta')}{\partial f / \partial \theta (\theta')} \, . \nonumber
+       \end{equation}
+ \item Go back to step 5.
+\end{enumerate}
+The result of this algorithm is a set of VMEC coordinates $(s,\theta',\zeta')$,
+which are on the same field line as the VMEC coordinates $(s,\theta,\zeta)$.
+
+\section{Inverse Coordinate Transform}
+The coordinate transform from VMEC coordinates~$(s,\theta,\zeta)$ into cylindrical real-space coordinates
+$(R,\varphi,Z)$ is performed by evaluating the Fourier series for $R$ and $Z$:
+\begin{align}
+ R(s,\theta,\zeta) =&\, \sum\limits_{m,n} \left[
+   \hat{R}^\textrm{cos}_{m,n}(s) \cos(m \theta - n \zeta) +
+   \hat{R}^\textrm{sin}_{m,n}(s) \sin(m \theta - n \zeta)
+ \right] \label{eqn:fwd_r} \\
+ Z(s,\theta,\zeta) =&\, \sum\limits_{m,n} \left[
+   \hat{Z}^\textrm{cos}_{m,n}(s) \cos(m \theta - n \zeta) +
+   \hat{Z}^\textrm{sin}_{m,n}(s) \sin(m \theta - n \zeta)
+ \right] \label{eqn:fwd_z} \, .
+\end{align}
+For stellarator-symmetric geometries, only the Fourier coefficients
+$\hat{R}^\textrm{cos}_{m,n}$ and $\hat{Z}^\textrm{sin}_{m,n}$ have to be considered.
+The toroidal coordinate~$\zeta$ in VMEC is the cylindrical angle per field period:
+\begin{equation}
+ \varphi = \frac{\zeta}{n_\textrm{fp}} \, .
+\end{equation}
+The inversion of this coordinate transformation, namely finding $(s,\theta,\zeta)$
+for given cylindrical real-space coordinates $(R,\varphi,Z)$, is more involved~\cite{attenberger_1987}.
+Finding $\zeta$ is done as follows:
+\begin{equation}
+ \zeta = n_\textrm{fp} \varphi \, .
+\end{equation}
+However, in order to find $s$ and $\theta$, a non-linear optimization has to be carried out
+in order to find those values of $s$ and $\theta$ for which
+the forward coordinate transformation in \eqn{fwd_r} and \eqn{fwd_z}
+yields the desired values of $R$ and $Z$.
+%
+For brevity, we consider in the following only $R(s,\theta)$ and $Z(s,\theta)$.
+%
+A Taylor expansion can be used to approximate $R$ and $Z$ around $s^{(k)}$ and $\theta^{(k)}$
+in the $k$-th iteration:
+\begin{align}
+ R(s, \theta) =&\, R(s^{(k)},\theta^{(k)}) +
+                   (     s -      s^{(k)}) \frac{\partial R}{\partial      s}(s^{(k)}, \theta^{(k)}) +
+                   (\theta - \theta^{(k)}) \frac{\partial R}{\partial \theta}(s^{(k)}, \theta^{(k)}) + ... \label{eqn:approx_r} \\
+ Z(s, \theta) =&\, Z(s^{(k)},\theta^{(k)}) +
+                   (     s -      s^{(k)}) \frac{\partial Z}{\partial      s}(s^{(k)}, \theta^{(k)}) +
+                   (\theta - \theta^{(k)}) \frac{\partial Z}{\partial \theta}(s^{(k)}, \theta^{(k)}) + ... \label{eqn:approx_z} \, .
+\end{align}
+The following abbreviations are introduced:
+\begin{align}
+ R              \equiv&\, R(s, \theta) \\
+ R^{(k)}        \equiv&\, R(s^{(k)},\theta^{(k)}) \\
+ R^{(k)}_s      \equiv&\, \frac{\partial R}{\partial      s}(s^{(k)}, \theta^{(k)}) \\
+ R^{(k)}_\theta \equiv&\, \frac{\partial R}{\partial \theta}(s^{(k)}, \theta^{(k)})
+\end{align}
+and equivalently for $Z$.
+%
+If the Taylor expansions in \eqn{approx_r} and \eqn{approx_z} are terminated after the shown terms,
+these expressions form a rank-2 linear system of equations:
+\begin{equation}
+  \begin{pmatrix}
+    R - R^{(k)} \\
+    Z - Z^{(k)}
+  \end{pmatrix}
+  =
+  \begin{pmatrix}
+    R^{(k)}_s & R^{(k)}_\theta \\
+    Z^{(k)}_s & Z^{(k)}_\theta
+  \end{pmatrix}
+  \begin{pmatrix}
+    s - s^{(k)} \\
+    \theta - \theta^{(k)}
+  \end{pmatrix} \label{eqn:approx_rz} \, .
+\end{equation}
+This system can be solved for $(s - s^{(k)})$ and $(\theta - \theta^{(k)})$.
+The determinant of the matrix in \eqn{approx_rz} is:
+\begin{equation}
+ \tau^{(k)} = R^{(k)}_s Z^{(k)}_\theta - R^{(k)}_\theta Z^{(k)}_s \, .
+\end{equation}
+Then, the solution is given by:
+\begin{equation}
+ \begin{pmatrix}
+         s \\
+    \theta
+  \end{pmatrix}
+  =
+ \begin{pmatrix}
+         s^{(k)} \\
+    \theta^{(k)}
+  \end{pmatrix}
+  +
+  \frac{1}{\tau^{(k)}}
+  \begin{pmatrix}
+     Z^{(k)}_\theta & -R^{(k)}_\theta \\
+    -Z^{(k)}_s      &  R^{(k)}_s
+  \end{pmatrix}
+  \begin{pmatrix}
+    R - R^{(k)} \\
+    Z - Z^{(k)}
+  \end{pmatrix} \, .
+\end{equation}
+This can be used as an iteration equation for $s$ and $\theta$,
+where the values for the $(k+1)$-th iteration are given by:
+\begin{align}
+ s^{(k+1)} =&\, s^{(k)} +
+   \frac{ Z^{(k)}_\theta \left( R - R^{(k)} \right) -
+          R^{(k)}_\theta \left( Z - Z^{(k)} \right) }{\tau^{(k)}} \\
+ \theta^{(k+1)} =&\, \theta^{(k)} +
+   \frac{ R^{(k)}_s \left( Z - Z^{(k)} \right) -
+          Z^{(k)}_s \left( R - R^{(k)} \right) }{\tau^{(k)}} \, .
+\end{align}
+The inverse coordinate transform is considered converged
+if the distance between the targeted point $(R,Z)$ and the model values $(R^{(k)},Z^{(k)})$
+is smaller than a prescribed tolerance~$\epsilon$:
+\begin{equation}
+ \left( R - R^{(k)} \right)^2 + \left( Z - Z^{(k)} \right)^2 < \epsilon \, .
+\end{equation}
+In case the iteration gives a worse result than the previous iterate,
+the step size is halved
+and an averaged value of the Jacobian is used:
+\begin{align}
+ s^{(k+2)} =&\, s^{(k)} + \frac{1}{2}
+   \frac{ Z^{(k)}_\theta \left( R - R^{(k)} \right) -
+          R^{(k)}_\theta \left( Z - Z^{(k)} \right) }{0.75 \tau^{(k)} + 0.25 \tau^{(k+1)}} \label{eqn:adaptive_step_s} \\
+ \theta^{(k+2)} =&\, \theta^{(k)} + \frac{1}{2}
+   \frac{ R^{(k)}_s \left( Z - Z^{(k)} \right) -
+          Z^{(k)}_s \left( R - R^{(k)} \right) }{0.75 \tau^{(k)} + 0.25 \tau^{(k+1)}} \label{eqn:adaptive_step_u} \, .
+\end{align}
+This process can be repeated as necessary
+until a new iterate for $s$ and $\theta$ is found
+which reduces the objective.
+
+% {\color{red} TODO: write up concrete radial interpolation method: \\
+%   parity-aware radial interpolation
+%   in product Fourier basis
+%   with symmetry-reflected entries
+%   to get correct boundary condition at the axis.}
+
+% {\color{red} TODO: write up concrete iteration method: \\
+%   * reset of step size once a successful step was taken again \\
+%   * plots of history for R, Z including bad steps (=dead ends in iteration) \\
+%   * a meaningful initial guess}
+
+An extrapolation for $s > 1$ can be defined as follows:
+Let $R_{1,0}$ and $Z_{1,0}$ be proportional to $\rho$,
+and all other coefficients be constant for $\rho > 1$.
+This causes the flux surfaces to approach ellipses
+as $\rho \rightarrow \infty$.
+Note that a discontinuity in $\tau$ occurs at $\rho = 1$
+using this algorithm.
+Equations~(\ref{eqn:adaptive_step_s}) and~(\ref{eqn:adaptive_step_u}) 
+are very effective in dealing with this.
+
+% \section{Computing the Magnetic Field}
+% This section introduces how to compute the magnetic field from a VMEC equilibrium.
+% Several methods are described here:
+% \begin{enumerate}
+%  \item Computation of the contravariant magnetic field components
+%        from $\lambda$, $\iota$, $\sqrt{g}$ and $\Phi'$
+%  \item Computation of the cylindrical magnetic field components
+%        from the contravariant magnetic field components
+%  \item Computation of the Cartesian magnetic field components
+%        from the cylindrical magnetic field components.
+% \end{enumerate}
+
+
+% {\color{red} TODO:
+% R * Btor towards axis - is constant? Attenberger check...
+% }
