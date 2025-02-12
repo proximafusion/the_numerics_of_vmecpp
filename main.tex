@@ -1,0 +1,433 @@
+\documentclass[a4paper,11pt]{book}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{siunitx}
+\usepackage{amsmath}
+\usepackage{authblk}
+\usepackage{cancel}
+
+\usepackage{geometry}
+\geometry{verbose,a4paper, tmargin=25mm, bmargin=25mm, lmargin=25mm, rmargin=25mm}
+
+% https://www.karlrupp.net/2016/01/pdf-metadata-in-latex-documents/
+\usepackage{hyperref}
+\hypersetup{
+pdftitle={The Numerics of VMEC++},
+pdfsubject={The Numerics of VMEC++},
+pdfauthor={Jonathan Schilling, Proxima Fusion, Munich, Germany},
+pdfkeywords={Variational Moments Equilibrium Code, Magnetohydrodynamics, Spectral Condensation, Free-Boundary}
+}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhfoffset[L]{1cm} % left extra length
+\fancyhfoffset[R]{1cm} % right extra length
+\rhead{Proxima Fusion}
+\lhead{The Numerics of VMEC++}
+\fancyfoot[R]{\thepage}
+
+% don't hyphenate VMEC
+\hyphenation{VMEC}
+\def\bsq#1{%both single quotes
+\lq{#1}\rq}
+
+\def\eqn#1{Eqn.~(\ref{eqn:#1})}
+
+% \intercal for transpose, \mathbb{R} reals, \mathbb{C} complex numbers
+\usepackage{amssymb}
+% \def\realnumbers{\rm I\!R} % does not generalize to complex numbers...
+\def\naturals{\mathbb{N}}
+\def\naturalsWithZero{\mathbb{N}_0}
+\def\integers{\mathbb{Z}}
+\def\realnumbers{\mathbb{R}}
+\def\complexnumbers{\mathbb{C}}
+
+% \boldsymbol{\xi}
+\usepackage{bm}
+
+% xrightarrow
+\usepackage{mathtools}
+
+% {\color{red} TODO:}
+\usepackage{xcolor}
+
+% \begin{algorithmic}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% \mathfrak{Re}, \mathfrak{Im}
+%\usepackage[frak=esstix]{mathalpha}
+%\usepackage[frak=esstix]{mathalfa}
+\def\realpart{\mathfrak{Re}}
+\def\imagpart{\mathfrak{Im}}
+
+% \FloatBarrier
+\usepackage{placeins}
+
+\newcommand{\code} {\texttt}
+
+% for \half
+\usepackage{nicefrac}
+\newcommand{\half} {\nicefrac{1}{2}}
+
+% for \mean{}
+\newcommand*\mean[1]{\bar{#1}}
+
+
+\usepackage[style=phys,
+            backend=biber,
+            articletitle = true,
+            biblabel = brackets,
+            maxbibnames=9,
+            maxcitenames=2,
+            chaptertitle = true,
+            pageranges = true,
+            doi = false,
+            url = true
+            ]{biblatex}
+\bibliography{main.bib}
+
+\title{The Numerics of VMEC++}
+\author[1]{Jonathan~Schilling\footnote{Corresponding author. E-mail: \href{mailto:jons@proximafusion.com}{jons@proximafusion.com}}}
+\affil[1]{Proxima~Fusion, Munich, Germany}
+
+\begin{document}
+
+% This environment creates a standalone title page
+\begin{titlepage}
+
+% We center the content on the page
+\centering
+
+% We include the Froxima Fusion logo, specifying a suitable width for the image
+\includegraphics[width=0.7\textwidth]{img/PF_Logo_FullColour.pdf}
+
+% We add vertical space after the logo
+\vspace{2cm}
+
+% We specify the title in a large, bold font
+{\Huge \textbf{The Numerics of VMEC++}}
+
+% We add additional vertical space
+\vspace{1cm}
+
+% We specify the author name
+{\Large \textsc{Jonathan Schilling}}
+
+\vspace{0.3cm}
+
+{\large Proxima Fusion, Munich, Germany}
+
+% We push the date to the bottom of the page
+\vfill
+
+% We automatically generate today's date
+{\large \today}
+
+\end{titlepage}
+
+\tableofcontents
+
+\chapter{Introduction}
+%
+The Variational Moments Equilibrium Code~(VMEC)~\cite{hirshman_whitson_1983}
+is the main computational workhorse used in the stellarator community
+to compute the three-dimensional geometry of
+and magnetic field in the plasma.
+%
+VMEC computes the plasma equilibrium in a stellarator
+under the assumption of ideal magneto-hydrodynamics~(MHD).
+%
+It therefore makes the explicit assumption
+of the existence of nested flux surfaces.
+%
+It is usually argued that any stellarator plasma
+relevant for a fusion power plant
+needs to possess nested flux surface in its core anyway for sufficiently good performance,
+despite the existence of nested flux surfaces not being guaranteed in a stellarator.
+%
+On the other hand,
+the explicit assumption about the topology of the plasma,
+i.e., the existence of nested flux surfaces,
+allows for a rather straightforward inverse formulation
+of the numerical problem that VMEC solves.
+
+
+Starting out from an initial guess for the flux surface geometry,
+the residual MHD force components are computed in real space, i.e.,
+on a grid in radial, poloidal and toroidal magnetic flux coordinates,
+and transformed back into Fourier space.
+%
+The Fourier coefficients of the forces are then used to move
+the flux surface geometry (represented by cylindrical coordinates~$R$ and~$Z$)
+and stream function~$\lambda$ towards force balance
+using an accelerated descent method.
+%
+The computation is converged when the force residuals for $R$, $Z$ and $\lambda$
+have decayed below a user-provided threshold.
+
+
+VMEC is designed to allow computation of the ideal MHD equilibrium
+for both symmetric and asymmetric two- and three-dimensional configurations,
+which is configured by selection of which subset of Fourier harmonics to include in the computation.
+%
+VMEC still is the most used 3D ideal-MHD equilibrium code these days,
+despite the initial version having been developed in the early 1980s.
+%
+This is due to its speed, robustness and relative simplicity in use.
+
+
+VMEC can be used in two operational modes,
+called fixed-boundary and free-boundary.
+%
+The fixed-boundary mode solves the ideal MHD force balance
+for a given, fixed, plasma boundary geometry and fixed radial profiles
+of pressure and either rotational transform or enclosed toroidal current
+on a number of flux surfaces inside the plasma boundary.
+%
+The free-boundary mode extends the fixed-boundary operation
+by allowing the plasma boundary to move into force balance
+with an external magnetic field produced by coils.
+%
+This adds computational complexity and hence,
+free-boundary computations are usually a factor of 2 to 10 slower
+than the corresponding fixed-boundary computations.
+%
+On the other hand, free-boundary operation of VMEC
+is a closer approximation of the real plasma equilibrium in an actually-built stellarator.
+
+
+The free-boundary force contribution on the plasma boundary
+is computed by the Neumann Solver for Toroidal Regions (NESTOR)~\cite{merkel_1986, merkel_1988}.
+%
+Free-boundary VMEC,
+i.e., the amalgamation of VMEC and NESTOR,
+was initially called NEMEC~\cite{hirshman_vanrij_merkel_1986}
+and the respective branch is still maintained under that name
+at the Max-Planck-Institute for Plasma Physics in Garching, Germany.
+%
+The latest version of NEMEC features an updated implementation of NESTOR,
+which is based on a current potential formulation~\cite{merkel2015linearmhdstabilitystudies}
+rather than an earlier magnetic scalar potential formulation,
+which is used in the main branch of VMEC
+maintained by the Oak Ridge National Laboratory~(ORNL).
+%
+It is noted that, when running VMEC in free-boundary mode,
+a so-called \texttt{mgrid} file is required.
+%
+This file stores a cache of the magnetic field contributions
+for unit currents in each independent circuit
+in the main coil system of the experiment to be modeled.
+%
+In case of W7-X, e.g., there are seven circuits: all 10 copies of each of the five non-planar coil type wired in series, respectively,
+and similar circuits of each 10 copies of the two planar coil types.
+%
+The VMEC input file then only needs to contain the respective circuit currents
+and the total magnetic field produced by all main coils
+is then computed by linear superposition of the response tables
+stored in the \texttt{mgrid} file, weighted by the user-provided circuit currents.
+
+\section*{Related Publications}
+%
+In the following, a complete (to the author's knowledge) list
+of publications and, where applicable, corresponding internal reports of ORNL
+(with sometimes additional details in comparison with the published journal articles)
+related to the numerical details implemented in VMEC is provided:
+\begin{enumerate}
+ \item ``Curvilinear coordinates for magnetic confinement geometries''~\cite{ornl_tm_8393_hirshman_1982}.
+       This technical report introduces the notation used by S. P. Hirshman
+       in the following publications related to VMEC.
+       %
+ \item ``Steepest-descent moment method for three-dimensional magnetohydrodynamic equilibria''~\cite{hirshman_whitson_1983};
+       the corresponding ORNL report is~\cite{ornl_tm_8861_hirshman_whitson_1983}.
+       This is the first article on the basic numerical approach that later became fixed-boundary VMEC.
+       A first approach to regularizing the poloidal parameterization is included in an appendix.
+       %
+ \item ``Accelerated Convergence of the Steepest Descent Method for Magnetohydrodynamic Equilibria''~\cite{handy_hirshman_1985};
+       the corresponding ORNL report is~\cite{ornl_tm_9133_handy_hirshman_1984}.
+       This is an early attempt at improving the convergence of the initial method published in Ref.~\cite{hirshman_whitson_1983}.
+       No further details about this branch of VMEC are known to the author.
+       %
+ \item ``Optimized Fourier representations for three‐dimensional magnetic surfaces''~\cite{hirshman_meier_1985};
+       the corresponding ORNL report is~\cite{ornl_tm_9300_hirshman_meier_1984}.
+       The spectral width~$\langle M \rangle$ is introduced as a metric
+       to quantify the compactness of a Fourier representation of the geometry of flux surfaces.
+       This forms the basis for the first implementation of the DESCUR curve fitting tool,
+       which was written as an interface between vacuum flux surfaces obtained from Poincare plots
+       and the Fourier representation of the plasma boundary required by VMEC.
+       %
+       Moreover, the approach to spectral condensation introduced in this article
+       is the one still mainly in use in the main branch of VMEC,
+       albeit with slight modifications (see below).
+       %
+ \item ``A convergent spectral representation for three-dimensional inverse magnetohydrodynamic equilibria''~\cite{hirshman_weitzner_1985};
+       the corresponding ORNL report is~\cite{ornl_tm_9302_hirshman_weitzner_1984}.
+       This is an alternative approach to spectral condensation,
+       which apparently was not followed further.
+       %
+ \item ``MOMCON: A spectral code for obtaining three-dimensional magnetohydrodynamic equilibria''~\cite{hirshman_lee_1986};
+       the corresponding ORNL report is~\cite{ornl_tm_9531_hirshman_lee_1985}.
+       This is a further iteration of the numerical implementation presented in Ref.~\cite{hirshman_whitson_1983}.
+       The code which later becomes VMEC got its first name: MOMCON.
+       Further details on spectral condensation are included.
+       The ORNL technical report lists subroutine names,
+       some of which have survived into the latest state of the main Fortran VMEC implementation.
+       %
+ \item ``ORMEC: A three-dimensional MHD spectral inverse equilibrium code''~\cite{hirshman_hogan_1986};
+       the corresponding ORNL report is~\cite{ornl_tm_9547_hirshman_hogan_1986}.
+       This article introduces the enclosed toroidal current constraint into VMEC.
+       A rebranding is performed to a new name: ORMEC.
+       %
+ \item ``An Integral Equation Technique for the Exterior and Interior Neumann Problem in Toroidal Regions''~\cite{merkel_1986}.
+       This is the main reference for NESTOR,
+       which computes the free-boundary force contribution by solving Laplace's equation
+       with a Neumann boundary condition on the plasma boundary.
+       %
+ \item ``Three-dimensional free boundary calculations using a spectral Green's function method''~\cite{hirshman_vanrij_merkel_1986}.
+       This is the main reference for free-boundary VMEC,
+       where the coupling between fixed-boundary VMEC and NESTOR is presented.
+       It is also the article where VMEC gets its final name.
+       %
+ \item ``Evaluation of magnetic coordinates in finite-beta, asymmetric plasmas''~\cite{ornl_tm_10222_beasly_rome_attenberger_hirshman_1987}.
+       This report presents a first attempt at computing Boozer coordinates
+       from an ideal MHD equilibrium computed by MOMCON or VMEC.
+       %
+ \item ``Some Practial Considerations Involving Spectral Representations of 3D Plasma Equilibria''~\cite{attenberger_1987};
+       the corresponding ORNL report is~\cite{ornl_tm_10412_attenberger_houlberg_hirshman_1987}.
+       This article introduces several important post-processing methods
+       commonly used on VMEC equilibria: an inverse coordinate transform
+       from real space back into VMEC's flux coordinates,
+       evaluation of the cylindrical components of the magnetic field,
+       and tracking a line-of-sight through the plasma.
+       %
+ \item ``Optimum Fourier representations for stellarator magnetic flux surfaces''~\cite{lee_1988}.
+       This paper introduces an alternative approach to computing an ideal MHD equilibrium
+       in the VMEC representation by reconstructing the Fourier coefficients of~$\lambda$
+       as well as the rotational transform profile from the plasma geometry.
+       While not directly related, this paper turned out to be quite valuable
+       as a cross-check of the understanding of the other articles related to VMEC.
+       %
+ \item ``Applications of the Neumann Problem to Stellarators: Magnetic Surfaces, Coils, Free-Boundary Equilibrium, Magnetic Diagnostics''~\cite{merkel_1988}.
+       This is a further iteration of the NESTOR publication by Merkel.
+       It mainly corrects some spelling mistakes of the original NESTOR article~\cite{merkel_1986}.
+       %
+ \item ``Improved Radial Differencing for Three-Dimensional Magnetohydrodynamic Equilibrium Calculations''~\cite{hirshman_schwenn_nuehrenberg_1990}.
+       This article introduces regularization factors for the odd-$m$ Fourier coefficients
+       in order to increase the numerical accuracy of radial derivatives approximated by finite differences.
+       %
+ \item ``Preconditioned Descent Algorithm for Rapid Calculations of Magnetohydrodynamic Equilibria''~\cite{hirshman_betancourt_1991}.
+       A radial preconditioner for the residual MHD forces on $R$ and $Z$ is introduced,
+       which strongly accelerates the convergence of VMEC.
+       A corresponding preconditioner for the force on~$\lambda$ is found in Ref.~\cite{betancourt_1988_betas},
+       related to the BETAS code.
+       %
+ \item ``Calculation of $\beta_I$ and $l_i$ for three‐dimensional plasma configurations''~\cite{hirshman_1993}.
+       This article goes into the details of some of the post-processing computations
+       found in the various output files produced by VMEC.
+       %
+ \item ``Explicit spectrally optimized Fourier series for nested magnetic surfaces''~\cite{hirshman_breslau_1998}.
+       This is yet another attempt at spectral condensation.
+       It is the basis for the latest version of the DESCUR curve fitting tool (see above)
+       and this representation was also found to be implemented as an option in VMEC,
+       but not used in practise.
+       %
+ \item ``BCYCLIC: A parallel block tridiagonal matrix cyclic solver''~\cite{hirshman_etal_2010}.
+       This article introduces a parallel block-tridiagonal matrix solver
+       used in the context of a two-dimensional preconditioner in VMEC
+       as well as in PARVMEC.
+       %
+ \item ``PARVMEC: An Efficient, Scalable Implementation of the Variational Moments Equilibrium Code''~\cite{seal_hirshman_2016}.
+       PARVMEC is the latest implementation of VMEC, which makes use of distributed-memory
+       parallelization using the Message Passing Interface~(MPI)
+       in order to speed up high-resolution VMEC computations
+       by distributing the workload across multiple computers.
+       %
+\end{enumerate}
+%
+The computation of the Mercier ideal-MHD stability criterion
+implemented in VMEC is described in Ref.~\cite{beta_2}.
+
+
+It is noted that before the implementation of PARVMEC,
+several other attempts had been made to parallelize VMEC:
+\begin{enumerate}
+  \item ``Parallelization Strategies for the VMEC Program''~\cite{romero_1998}.
+  \item ``Partial Parallelization of VMEC System''~\cite{msc_zhou}.
+  \item ``Data-task parallelism for the VMEC program''~\cite{romero_2001}.
+  \item ``Optimization strategy for the VMEC stellarator equilibrium code''~\cite{merz_2013}.
+        This is the basic blueprint according to which PARVMEC was then implemented.
+\end{enumerate}
+%
+Several earlier versions of VMEC were found in the context of this work.
+The earliest among those is labelled VMEC\_9011.
+The numerical suffix is interpreted as indicating a release date in November of 1990.
+%
+It is noted that already this rather early version
+includes almost all features of the present-day fixed-boundary VMEC,
+and only few minor details have been changed regarding the core numerical approach
+to computing the MHD equilibrium since that version.
+
+\FloatBarrier
+
+\input{00_know_your_tools.inc}
+\input{01_toroidal_coordinate_system.inc}
+\input{02_spectral_condensation.inc}
+\input{03_vmec.inc}
+\input{04_nestor.inc}
+\input{05_nestor_vac3.inc}
+\input{06_vmec_inputs.inc}
+\input{07_vmec_outputs.inc}
+\input{08_using_vmec.inc}
+\input{09_bnorm.inc}
+\input{10_solovev.inc}
+
+\FloatBarrier
+\newpage
+
+\section*{Acknowledgements}
+%
+\begin{itemize}
+ \item Thanks to Mark Cianciosa for managing and providing the VMEC source code and setting up the new \texttt{cmake} build system.
+ \item Thanks to Matt Landreman for contributing an independent solution to the analytical math and code structure of NESTOR,
+       which was very helpful in deriving the NESTOR equations.
+ \item Thanks to 
+       Jim Hanson, 
+       Mark Cianciosa, 
+       Sam Lazerson, 
+       Joachim Geiger, 
+       John Schmitt, 
+       Florian Hindenlang, 
+       Omar Maj, 
+       Dharya Malhotra,
+       Antoine Cerfon,
+       Antoine Baillod,
+       Joaquim Loizu,
+       Stuart Hudson,
+       Ksenia Aleynikova,
+       Chris Smiet,
+       Andrew Ware,
+       Caoxiang Zhu, 
+       Zhisong Qu,
+       David Pfefferle,
+       Bharat Medasani,
+       Rory Conlin, 
+       Daniel Dudt, 
+       Dario Panici, 
+       Egemen Kolemen,
+       Philipp Jurasic,
+       Sophia Henneberg,
+       and 
+       Gavin Weir
+       for the many and sometimes lengthy discussions
+       related to VMEC which made it at all possible for me to get this deeply involved.
+ \item Thanks to Erika Strumberger for providing the NEMEC source code and additional derivations related
+       to the second implementation of NESTOR by Peter Merkel.
+ \item Thanks to Enrico Guiraud for substantially contributing to the successful implementation of VMEC++.
+ \item Special thanks to Klara Höfler for many insightful discussions on math and wording
+       as well as independent solutions to some critical parts of the derivation of the analytical parts of NESTOR.
+ \end{itemize}
+
+\printbibliography
+
+\end{document}
