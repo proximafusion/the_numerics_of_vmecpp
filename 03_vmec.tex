@@ -2443,3 +2443,30 @@ is larger than the number of Fourier coefficients,
 which implies that the linear system of equations
 is over-constrained and hence needs to be
 solved in a least-squares sense.
+
+\subsection{Mercier Stability}
+
+The contribution due to magnetic shear is computed as follows:
+\begin{align}
+ D_\textrm{shear} = (\iota')^2 / 4 \, .
+\end{align}
+%
+The contribution due to the plasma current is computed as follows:
+\begin{align}
+ D_\textrm{curr} = -\iota' (t_{jb} - I_\textrm{tor}' t_{bb}) \, .
+\end{align}
+%
+The contribution due to the magnetic well is computed as follows:
+\begin{align}
+ D_\textrm{well} = p' (V'' - p' t_{pp}) t_{bb} \, .
+\end{align}
+%
+The contribution due to geodesic curvature is computed as follows:
+\begin{align}
+ D_\textrm{geod} = t_{jb}^2 - t_{bb} t_{jj} \, .
+\end{align}
+%
+The final value for Mercier's stability criterion is then added up from the four contributions:
+\begin{align}
+ D_\textrm{Merc} = D_\textrm{shear} + D_\textrm{curr} + D_\textrm{well} + D_\textrm{geod}\, .
+\end{align}

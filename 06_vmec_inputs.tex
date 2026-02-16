@@ -337,17 +337,16 @@ where the default initial guess for the rotational transform profil ($\iota = 1$
        Values greater than 1 mean that the matrix in the Nestor module is re-used for the next \texttt{nvacskip} iterations
        after the one that computed it (such as the first iteration that the free-boundary computation was activated).
 
- % \item \texttt{free\_boundary\_method} \\
- %       Type: \texttt{string} \\
- %       Default: \texttt{"nestor"} \\
- %       This enum controls which method is used in VMEC++
- %       to compute the free-boundary force contribution.
- %       Options are \texttt{"nestor"} for the standard
- %       NEumann Solver for TORoidal systems
- %       and \texttt{"biest"} for the Boundary Integral Equation Solver
- %       for Toroidal systems.
- %       Note that BIEST currently only works
- %       with zero net toroidal current (\texttt{curtor = 0}).
+ \item \texttt{free\_boundary\_method} \\
+       Type: \texttt{string} \\
+       Default: \texttt{"nestor"} \\
+       This enum controls which method is used in VMEC++
+       to compute the free-boundary force contribution.
+       Options are \texttt{"nestor"} for the standard
+       NEumann Solver for TORoidal systems
+       and \texttt{"only_coils"} for using only the vacuum field due to external coils.
+       The option \texttt{"only_coils"} only works for zero pressure (\texttt{pres\_scale = 0})
+       and zero net toroidal current (\texttt{curtor = 0}).
 
 \end{itemize}
 
