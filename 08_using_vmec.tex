@@ -354,36 +354,69 @@ The current density from VMEC is computed using Ampere's law:
 \begin{equation}
  \mathbf{j} = \frac{1}{\mu_0} \nabla \times \mathbf{B} \, .
 \end{equation}
-We start from the magnetic field~$\mathbf{B}$ in its covariant form:
+%
+If the curl of a covariant representation of a field is computed,
+this results in a contravariant representation of the resulting field and vice versa~\cite{dHaseleer}.
+%
+Therefore, the covariant magnetic field components $B_i$ are needed
+to compute the contravariant current density components $j^i$.
+%
+The covariant magnetic field components~$(B_s, B_\theta, B_\varphi)$ represent the equilibrium magnetic field $\mathbf{B}$ as follows:
 \begin{equation}
  \mathbf{B} = B_s \nabla s + B_\theta \nabla \theta + B_\zeta \nabla \zeta \, .
 \end{equation}
-This allows to compute the contravariant components of the current density~$\mathbf{j}$ as follows:
+%
+They are available in the output of VMEC as two-dimensional Fourier series on the half-grid:
+\begin{align}
+ B_s      (s_{j+0.5}, \theta, \varphi) =& \sum_{m,n} \left[  \hat{B}_{s,      mn}^\mathrm{cos} (s_{j+0.5}) \,\mathrm{cos}(m \theta - n n_\mathrm{fp} \varphi)
+                                                            + \hat{B}_{s,      mn}^\mathrm{sin} (s_{j+0.5}) \,\mathrm{sin}(m \theta - n n_\mathrm{fp} \varphi) \right] \nonumber \\
+ B_\theta (s_{j+0.5}, \theta, \varphi) =& \sum_{m,n} \left[  \hat{B}_{\theta, mn}^\mathrm{cos} (s_{j+0.5}) \,\mathrm{cos}(m \theta - n n_\mathrm{fp} \varphi)
+                                                            + \hat{B}_{\theta, mn}^\mathrm{sin} (s_{j+0.5}) \,\mathrm{sin}(m \theta - n n_\mathrm{fp} \varphi) \right] \\
+ B_\varphi  (s_{j+0.5}, \theta, \varphi) =& \sum_{m,n} \left[  \hat{B}_{\varphi,  mn}^\mathrm{cos} (s_{j+0.5}) \,\mathrm{cos}(m \theta - n n_\mathrm{fp} \varphi)
+                                                            + \hat{B}_{\varphi,  mn}^\mathrm{sin} (s_{j+0.5}) \,\mathrm{sin}(m \theta - n n_\mathrm{fp} \varphi) \right] \nonumber
+\end{align}
+with the $m,n$ summation as detailed in Sec.~\ref{sec:torcoords_numbering},
+albeit more Fourier coefficients are retained in this expansion
+in order to satisfy the Nyquist sampling theorem.
+%
+Note that, in contrast to the contravariant magnetic field representation,
+the radial component $B_s \neq 0$ in the covariant representation.
+%
+Given the covariant magnetic field representation, the curl of it takes a particurarly simple form~\cite{dHaseleer}:
 \begin{equation}
- j^i = \frac{1}{\mu_0} \frac{1}{\sqrt{g}} \left[ \frac{B_k}{\partial u^j} - \frac{B_j}{\partial u^k} \right] , \quad (i,j,k) \textrm{ cyc. } (s,\theta,\zeta) \, .
+ \mu_0 \mathbf{j}^i = \frac{1}{\sqrt{g}} \sum_k \left(  \frac{\partial B_j}{\partial i}
+                                             - \frac{\partial B_i}{\partial j} \right)
+                                       \hat{\mathbf{e}}_k, \quad (i,j,k) ~ \mathrm{cyc.} ~ (s, \theta, \varphi)
 \end{equation}
-The current density is computed mostly to act as a source term in the Biot-Savart volume integrals.
+with $\sqrt{g}$ being the Jacobian of the coordinate transform between flux coordinates and cylindrical coordinates.
+%
+The current density is, in practise, often computed to act as a source term in the Biot-Savart volume integrals.
 There, the Jacobian~$\sqrt{g}$ is required in the integral.
 It is therefore customary to compute~$\mathbf{j} \sqrt{g}$:
 \begin{equation}
  j^i \sqrt{g} = \frac{1}{\mu_0} \left( \frac{B_k}{\partial u^j} - \frac{B_j}{\partial u^k} \right) , \quad (i,j,k) \textrm{ cyc. } (s,\theta,\zeta) \, .
 \end{equation}
+%
 The concrete contravariant components of the current density are thus:
 \begin{align}
  j^s      \sqrt{g} =&\, \frac{1}{\mu_0} \left( \frac{\partial B_\zeta }{\partial \theta} - \frac{\partial B_\theta}{\partial \zeta } \right) \nonumber \\
  j^\theta \sqrt{g} =&\, \frac{1}{\mu_0} \left( \frac{\partial B_s     }{\partial \zeta } - \frac{\partial B_\zeta }{\partial s     } \right) \label{eqn:currx} \\
  j^\zeta  \sqrt{g} =&\, \frac{1}{\mu_0} \left( \frac{\partial B_\theta}{\partial s     } - \frac{\partial B_s     }{\partial \theta} \right) \nonumber
 \end{align}
-In VMEC, the current density is assumed to be only tangential to the flux surfaces.
-Hence, $j^s = 0$ is assumed and we only consider $j^\theta$ and $j^\zeta$ in the following.
-The covariant components of the magnetic field are available as two-dimensional Fourier series:
-\begin{equation}
- B_i(s, \theta, \zeta) = \sum\limits_{m,n} \left[
-   \hat{B}^\textrm{cos}_{i,m,n}(s) \cos(m \theta - n \zeta) +
-   \hat{B}^\textrm{sin}_{i,m,n}(s) \sin(m \theta - n \zeta)
- \right] \, .
-\end{equation}
-This allows to perform the tangential derivatives in \eqn{currx} analytically:
+%
+The current density vector $\mathbf{j}$ is constrained to be tangential to flux surfaces in VMEC++.
+%
+Therefore, the current density can only have non-zero components in the tangential $\theta$ and $\varphi$ directions and $j^s = 0$ is assumed.
+%
+This allows to formulate a magnetic differential equation:
+\begin{align}
+ \frac{\partial B_\zeta }{\partial \theta} - \frac{\partial B_\theta}{\partial \zeta } = 0 \, .
+\end{align}
+%
+We only consider $j^\theta$ and $j^\zeta$ in the following.
+%
+The two-dimensional Fourier series representation of the covariant magnetic field components
+allows to perform the tangential derivatives in \eqn{currx} analytically:
 \begin{align}
  \frac{\partial B_i}{\partial \theta}(s, \theta, \zeta)
  =&\, \sum\limits_{m,n} \left[
@@ -404,6 +437,7 @@ This allows to perform the tangential derivatives in \eqn{currx} analytically:
    \left(-n \hat{B}^\textrm{sin}_{i,m,n}(s)\right) \cos(m \theta - n \zeta)
  \right] \, .
 \end{align}
+%
 The quantities $j^i \sqrt{g} \equiv J^i$ are also Fourier-decomposed:
 \begin{equation}
  J^i(s, \theta, \zeta) = \sum\limits_{m,n} \left[
@@ -411,6 +445,7 @@ The quantities $j^i \sqrt{g} \equiv J^i$ are also Fourier-decomposed:
    \hat{J}^{i,\textrm{sin}}_{m,n}(s) \sin(m \theta - n \zeta)
  \right] \, .
 \end{equation}
+%
 The orthogonality of the Fourier basis now allows to express \eqn{currx}
 for each of the coefficients independently:
 \begin{align}
@@ -427,14 +462,128 @@ for each of the coefficients independently:
    \frac{\partial \hat{B}^\textrm{sin}_{\theta,m,n}}{\partial s} + m \hat{B}^\textrm{cos}_{s,m,n}(s)
  \right)
 \end{align}
+%
 If the current density components are desired to be computed on the full-grid,
 the radial derivatives can make use of the fact that $B_\theta$ and $B_\zeta$
-are exported on the half-grid from VMEC.
-The remaining covariant component $B_s$ is documented to written out on the full-grid,
-but it is actually computed on the half-grid as seen above.
-The radial interpolation of $B_s$ is regularized
-by including an additional factor of $\sqrt{s}$,
-which is divided out again after the the interpolation.
+are computed on the half-grid in VMEC++.
+%
+Derivatives with respect to $s$ are computed as finite differences across the discrete flux surfaces.
+%
+Regularization terms have to be included in order to
+reduce the impact of catastrophic cancellation near the magnetic axis~\cite{hirshman_vmec_currents}.
+%
+Only the stellarator-symmetric current density components~$\hat{j}_{mn}^{\theta, \mathrm{cos}}$
+and~$\hat{j}_{mn}^{\varphi,  \mathrm{cos}}$ are considered in the following.
+%
+The non-stellarator-symmetric components follow analogously.
+%
+The radial derivatives~$\partial \hat{B}_{\theta, mn}^\mathrm{cos} / \partial s$
+and~$\partial \hat{B}_{\varphi, mn}^\mathrm{cos} / \partial s$ are computed as follows:
+\begin{align}
+\frac{\partial \hat{B}_{\theta, mn}^\mathrm{cos}}{\partial s} (s_j)
+ =&\, \begin{cases}
+        \frac{1}{\Delta s} \left( \hat{B}_{\theta, mn}^\mathrm{cos}(s_{j+0.5}) - \hat{B}_{\theta, mn}^\mathrm{cos}(s_{j-0.5}) \right) &:\, \textrm{ even } m \\
+        \frac{\sqrt{s_j}}{\Delta s} \left(
+            \hat{b}_{\theta, mn}^\mathrm{cos}(s_{j+0.5})
+          - \hat{b}_{\theta, mn}^\mathrm{cos}(s_{j-0.5}) \right) \\
+        ~ + \frac{1}{4 \sqrt{s_j}} \left(
+              \hat{b}_{\theta, mn}^\mathrm{cos}(s_{j+0.5})
+            + \hat{b}_{\theta, mn}^\mathrm{cos}(s_{j-0.5}) \right)
+          &:\, \textrm{ odd } m
+      \end{cases} \\
+ \frac{\partial \hat{B}_{\varphi, mn}^\mathrm{cos}}{\partial s} (s_j)
+ =&\, \begin{cases}
+        \frac{1}{\Delta s} \left( \hat{B}_{\varphi, mn}^\mathrm{cos}(s_{j+0.5}) - \hat{B}_{\varphi, mn}^\mathrm{cos}(s_{j-0.5}) \right) &:\, \textrm{ even } m \\
+        \frac{\sqrt{s_j}}{\Delta s} \left(
+            \hat{b}_{\varphi, mn}^\mathrm{cos}(s_{j+0.5})
+          - \hat{b}_{\varphi, mn}^\mathrm{cos}(s_{j-0.5}) \right) \\
+        ~ + \frac{1}{4 \sqrt{s_j}} \left(
+              \hat{b}_{\varphi, mn}^\mathrm{cos}(s_{j+0.5})
+            + \hat{b}_{\varphi, mn}^\mathrm{cos}(s_{j-0.5}) \right)
+          &:\, \textrm{ odd } m
+      \end{cases}
+\end{align}
+with
+\begin{align}
+ \hat{b}_{\theta, mn}^\mathrm{cos}(s_{j+0.5}) =&\, \frac{\hat{B}_{\theta, mn}^\mathrm{cos}(s_{j+0.5})}{\sqrt{s_{j+0.5}}} \\
+ \hat{b}_{\varphi, mn}^\mathrm{cos}(s_{j+0.5}) =&\, \frac{\hat{B}_{\varphi, mn}^\mathrm{cos}(s_{j+0.5})}{\sqrt{s_{j+0.5}}} \, .
+\end{align}
+%
+This is the differencing scheme introduced in Ref.~\cite{hirshman_schwenn_nuehrenberg_1990}.
+%
+The regularized interpolation of~$\hat{B}_{s,mn}^\mathrm{sin}$ is done as follows:
+\begin{align}
+ \hat{B}_{s,mn}^\mathrm{sin}
+ = \begin{cases}
+    \frac{1}{2} \left( \hat{B}_{s, mn}^\mathrm{sin}(s_{j+0.5}) + \hat{B}_{s, mn}^\mathrm{sin}(s_{j-0.5}) \right) &:\, \textrm{ even } m \\
+    \frac{1}{2 \sqrt{s_j}} \left(
+        \hat{b}_{s, mn}^\mathrm{cos}(s_{j+0.5})
+      + \hat{b}_{s, mn}^\mathrm{cos}(s_{j-0.5}) \right) &:\, \textrm{ odd } m
+   \end{cases}
+\end{align}
+with
+\begin{align}
+ \hat{b}_{s, mn}^\mathrm{cos}(s_{j+0.5})
+ = \sqrt{s_{j+0.5}} \hat{B}_{s,mn}^\mathrm{sin}(s_{j+0.5}) \, .
+\end{align}
+%
+The mapping between intermediate quantities occuring throughout the computation of the current density in VMEC
+and the corresponding variables in the Fortran VMEC implementation is found in Tab.~\ref{tab:compute_currents_vars}.
+\begin{table}[tb]
+ \centering
+ \begin{tabular}{|c|c|}
+  \hline
+  Fortran Variable name & Physical quantity \\
+  \hline
+  \texttt{bu0} & $\hat{b}_{\theta, mn}^\mathrm{cos}(s_{j-0.5})$ \\
+  \texttt{bu1} & $\hat{b}_{\theta, mn}^\mathrm{cos}(s_{j+0.5})$ \\
+  \texttt{bv0} & $\hat{b}_{\varphi, mn}^\mathrm{cos}(s_{j-0.5})$ \\
+  \texttt{bv1} & $\hat{b}_{\varphi, mn}^\mathrm{cos}(s_{j+0.5})$ \\
+  \hline
+  \texttt{t1} & $\hat{B}_{s,mn}^\mathrm{sin} (s_j)$ \\
+  \texttt{t2} & $\frac{\partial \hat{B}_{\theta, mn}^\mathrm{cos}}{\partial s} (s_j)$ \\
+  \texttt{t3} & $\frac{\partial \hat{B}_{\varphi, mn}^\mathrm{cos}}{\partial s} (s_j)$ \\
+  \hline
+ \end{tabular}
+ \caption{Fortran variable names for the various physical quantities
+          occuring throughout the computation of the current density in VMEC.}
+ \label{tab:compute_currents_vars}
+\end{table}
+%
+The \texttt{b\{u,v\}\{0,1\}} terms are used to compute the \texttt{t\{2,3\}} terms as follows:
+\begin{align}
+ \texttt{t2} =&\, \begin{cases}
+                   \frac{   1      }{\Delta s} \left( \hat{B}_{\theta, mn}^\mathrm{cos}(s_{j+0.5}) - \hat{B}_{\theta, mn}^\mathrm{cos}(s_{j-0.5}) \right)     &:\, \textrm{even } m \\
+                   \frac{\sqrt{s_j}}{\Delta s} \left( \texttt{bu1} - \texttt{bu0} \right) + \frac{1}{4 \sqrt{s_j}} \left( \texttt{bu1} + \texttt{bu0} \right) &:\, \textrm{odd  } m
+                  \end{cases} \\
+ \texttt{t3} =&\, \begin{cases}
+                   \frac{   1      }{\Delta s} \left( \hat{B}_{\varphi, mn}^\mathrm{cos}(s_{j+0.5}) - \hat{B}_{\varphi, mn}^\mathrm{cos}(s_{j-0.5}) \right)       &:\, \textrm{even } m \\
+                   \frac{\sqrt{s_j}}{\Delta s} \left( \texttt{bv1} - \texttt{bv0} \right) + \frac{1}{4 \sqrt{s_j}} \left( \texttt{bv1} + \texttt{bv0} \right) &:\, \textrm{odd  } m  \, .
+                  \end{cases}
+\end{align}
+%
+Using these definitions, the Fourier coefficients of the current density (times the Jacobian)
+are computed as follows in the VMEC subroutine \texttt{Compute\_Currents}:
+\begin{align}
+ \texttt{currumnc} = (\sqrt{g} j^\theta)^{\textrm{cos}}_{mn}
+   =&\, \frac{1}{\mu_0} \left( -n \cdot \texttt{t1} - \texttt{t3} \right) \\
+ \texttt{currvmnc} = (\sqrt{g} j^\varphi )^{\textrm{cos}}_{mn}
+   =&\, \frac{1}{\mu_0} \left( -m \cdot \texttt{t1} + \texttt{t2} \right) \, .
+\end{align}
+%
+Linear extrapolation is used to compute the current density Fourier coefficents with $m \leq 1$ at the magnetic axis,
+with all other Fourier harmonics set to zero at the magnetic axis.
+%
+Linear extrapolation is also used to compute the current density coefficients at the LCFS for all Fourier harmonics.
+%
+The source term in the Biot-Savart integral over the plasma current density,
+namely the cylindrical components of the current density~$(j^{R}, j^{\varphi}, j^{Z})$ times the Jacobian,
+are then computed from the contravariant representation as follows
+for the remaining $j^R$ and $j^Z$:
+\begin{align}
+ \sqrt{g} j^{R}       =&\,   \sqrt{g} j^\theta \frac{\partial R}{\partial \theta} + \sqrt{g} j^\varphi \frac{\partial R}{\partial \varphi} \\
+ \sqrt{g} j^{Z}       =&\,   \sqrt{g} j^\theta \frac{\partial Z}{\partial \theta} + \sqrt{g} j^\varphi \frac{\partial Z}{\partial \varphi} \, .
+\end{align}
 
 \section{Field Line Following in VMEC}
 Straight-fieldline-coordinate are $(s, \theta^*, \zeta)$ in VMEC, where
