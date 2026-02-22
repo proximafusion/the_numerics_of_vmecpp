@@ -2652,25 +2652,25 @@ between $l_\mathrm{min}=|m-n|$ and $l_\mathrm{max}=m+n$ is assigned a finite val
 \begin{algorithm}
 \caption{Calculate $\mathtt{cmn}(l,m,n)$}
 \begin{algorithmic}
-\REQUIRE $m \geq 0, n \geq 0$
-\STATE $j_{m,n} \gets m + n$
-\STATE $i_{m,n} \gets m - n$
-\STATE $k_{m,n} \gets |i_{m,n}|$
-\STATE $s_{m,n} \gets (j_{m,n} + k_{m,n})/2$
-\STATE $f_1 \gets 1$
-\STATE $f_2 \gets 1$
-\STATE $f_3 \gets 1$
-\STATE $\mathtt{cmn}(:,m,n) \gets 0$
-\FOR{$(i \gets 1 ; i \leq k_{m,n} ; i \gets i+1)$}
-  \STATE $f_1 \gets f_1 \cdot (s_{m,n} - i + 1)$
-  \STATE $f_2 \gets f_2 \cdot i$
-\ENDFOR
-\FOR{$(l \gets k_{m,n} ; l \leq j_{m,n} ; l \gets l+2)$}
-  \STATE $\mathtt{cmn}(l,m,n) \gets f_1/(f_2 \cdot f_3) \cdot (-1)^{(l-i_{m,n})/2}$
-  \STATE $f_1 \gets f_1 \cdot (l+2+j_{m,n}) \cdot (j_{m,n}-l) / 4$
-  \STATE $f_2 \gets f_2 \cdot (l+2+k_{m,n})/2$
-  \STATE $f_3 \gets f_3 \cdot (l+2-k_{m,n})/2$
-\ENDFOR
+\Require $m \geq 0, n \geq 0$
+\State $j_{m,n} \gets m + n$
+\State $i_{m,n} \gets m - n$
+\State $k_{m,n} \gets |i_{m,n}|$
+\State $s_{m,n} \gets (j_{m,n} + k_{m,n})/2$
+\State $f_1 \gets 1$
+\State $f_2 \gets 1$
+\State $f_3 \gets 1$
+\State $\mathtt{cmn}(:,m,n) \gets 0$
+\For{$(i \gets 1 ; i \leq k_{m,n} ; i \gets i+1)$}
+  \State $f_1 \gets f_1 \cdot (s_{m,n} - i + 1)$
+  \State $f_2 \gets f_2 \cdot i$
+\EndFor
+\For{$(l \gets k_{m,n} ; l \leq j_{m,n} ; l \gets l+2)$}
+  \State $\mathtt{cmn}(l,m,n) \gets f_1/(f_2 \cdot f_3) \cdot (-1)^{(l-i_{m,n})/2}$
+  \State $f_1 \gets f_1 \cdot (l+2+j_{m,n}) \cdot (j_{m,n}-l) / 4$
+  \State $f_2 \gets f_2 \cdot (l+2+k_{m,n})/2$
+  \State $f_3 \gets f_3 \cdot (l+2-k_{m,n})/2$
+\EndFor
 \end{algorithmic}
 \label{alg:cmn}
 \end{algorithm}
@@ -2917,32 +2917,32 @@ The following algorithm~(\ref{alg:const_initial_T_pm_0}) calculates some constan
 \caption{Calculate constants needed for and initial values of $T^{\pm}_l$}
 \label{alg:const_initial_T_pm_0}
 \begin{algorithmic}
-\REQUIRE $a, 2b, c, A, 2B, C$
-\STATE Initialize constants:
-\STATE $a^{+} \gets a + 2b + c$
-\STATE $a^{-} \gets a - 2b + c$
-\STATE $d \gets c-a$
-\STATE $2\sqrt{c} \gets 2 \cdot \sqrt{c}$
-\STATE $2\sqrt{a} \gets 2 \cdot \sqrt{a}$
-\STATE $\Delta/4 \gets a^{+} \cdot a^{-} - d \cdot d$
-\STATE $A^{+} \gets A + 2B + C$
-\STATE $A^{-} \gets A - 2B + C$
-\STATE $D \gets C - A$
-\STATE $R^{+}_1 \gets \left[  A^{+} \cdot (\Delta/4 - d \cdot d)/a^{+} - A^{-} \cdot a^{+} + 2 \cdot D \cdot d \right]/(\Delta/4)$
-\STATE $R^{-}_1 \gets \left[  A^{-} \cdot (\Delta/4 - d \cdot d)/a^{-} - A^{+} \cdot a^{-} + 2 \cdot D \cdot d \right]/(\Delta/4)$
-\STATE $R^{+}_0 \gets \left( -A^{+} \cdot a^{-} \cdot d / a^{+} - A^{-} \cdot d + 2 \cdot D \cdot a^{-} \right)/(\Delta/4)$
-\STATE $R^{-}_0 \gets \left( -A^{-} \cdot a^{+} \cdot d / a^{-} - A^{+} \cdot d + 2 \cdot D \cdot a^{+} \right)/(\Delta/4)$
-\STATE $R^{+}_{\mathrm{a},1} \gets A^{+} / a^{+}$
-\STATE $R^{-}_{\mathrm{a},1} \gets A^{-} / a^{-}$
-\STATE ~
-\STATE Compute initial values for $T^{\pm}_{l-1}$ and $T^{\pm}_l$:
-\STATE Compute $\sqrt{a^{+}}$
-\STATE Compute $\sqrt{a^{-}}$
-\STATE $T^{+}_{l-1} \gets 0$
-\STATE $T^{-}_{l-1} \gets 0$
-\STATE $T^{+}_l \gets 1/\sqrt{a^{+}} \cdot \log\left( \left[ \sqrt{a^{+}} \cdot 2\sqrt{c} + a^{+} + d \right]/\left[ \sqrt{a^{+}} \cdot 2\sqrt{a} - a^{+} + d \right] \right)$
-\STATE $T^{-}_l \gets 1/\sqrt{a^{-}} \cdot \log\left( \left[ \sqrt{a^{-}} \cdot 2\sqrt{c} + a^{-} + d \right]/\left[ \sqrt{a^{-}} \cdot 2\sqrt{a} - a^{-} + d \right] \right)$
-\STATE $T_l \gets T^{+}_l + T^{-}_l$
+\Require $a, 2b, c, A, 2B, C$
+\State Initialize constants:
+\State $a^{+} \gets a + 2b + c$
+\State $a^{-} \gets a - 2b + c$
+\State $d \gets c-a$
+\State $2\sqrt{c} \gets 2 \cdot \sqrt{c}$
+\State $2\sqrt{a} \gets 2 \cdot \sqrt{a}$
+\State $\Delta/4 \gets a^{+} \cdot a^{-} - d \cdot d$
+\State $A^{+} \gets A + 2B + C$
+\State $A^{-} \gets A - 2B + C$
+\State $D \gets C - A$
+\State $R^{+}_1 \gets \left[  A^{+} \cdot (\Delta/4 - d \cdot d)/a^{+} - A^{-} \cdot a^{+} + 2 \cdot D \cdot d \right]/(\Delta/4)$
+\State $R^{-}_1 \gets \left[  A^{-} \cdot (\Delta/4 - d \cdot d)/a^{-} - A^{+} \cdot a^{-} + 2 \cdot D \cdot d \right]/(\Delta/4)$
+\State $R^{+}_0 \gets \left( -A^{+} \cdot a^{-} \cdot d / a^{+} - A^{-} \cdot d + 2 \cdot D \cdot a^{-} \right)/(\Delta/4)$
+\State $R^{-}_0 \gets \left( -A^{-} \cdot a^{+} \cdot d / a^{-} - A^{+} \cdot d + 2 \cdot D \cdot a^{+} \right)/(\Delta/4)$
+\State $R^{+}_{\mathrm{a},1} \gets A^{+} / a^{+}$
+\State $R^{-}_{\mathrm{a},1} \gets A^{-} / a^{-}$
+\State ~
+\State Compute initial values for $T^{\pm}_{l-1}$ and $T^{\pm}_l$:
+\State Compute $\sqrt{a^{+}}$
+\State Compute $\sqrt{a^{-}}$
+\State $T^{+}_{l-1} \gets 0$
+\State $T^{-}_{l-1} \gets 0$
+\State $T^{+}_l \gets 1/\sqrt{a^{+}} \cdot \log\left( \left[ \sqrt{a^{+}} \cdot 2\sqrt{c} + a^{+} + d \right]/\left[ \sqrt{a^{+}} \cdot 2\sqrt{a} - a^{+} + d \right] \right)$
+\State $T^{-}_l \gets 1/\sqrt{a^{-}} \cdot \log\left( \left[ \sqrt{a^{-}} \cdot 2\sqrt{c} + a^{-} + d \right]/\left[ \sqrt{a^{-}} \cdot 2\sqrt{a} - a^{-} + d \right] \right)$
+\State $T_l \gets T^{+}_l + T^{-}_l$
 \end{algorithmic}
 \end{algorithm}
 
@@ -2951,28 +2951,28 @@ Algorithm~(\ref{alg:T_pm_l_S_pm_l}) then iterates over the values of $l$ and com
 \caption{Calculate $T^{\pm}_l$ and $S^{\pm}_l$ for all $l$}
 \label{alg:T_pm_l_S_pm_l}
 \begin{algorithmic}
-\REQUIRE results of Alg.~(\ref{alg:const_initial_T_pm_0}) and $\mathtt{mf}, \mathtt{nf}$
-\STATE $\mathtt{sgn} \gets 1$
-\FOR{$(l \gets 0 ; l \leq \mathtt{mf}+\mathtt{nf} ; l \gets l+1)$}
-  \STATE Compute $S^{+}_l$, $S^{-}_l$, $S_l$:
-  \STATE $         S^{+}_l \gets     \left( R^{+}_1 \cdot l + R^{+}_{\mathrm{a},1} \right) \cdot T^{+}_l + R^{+}_0 \cdot l \cdot T^{+}_{l-1}$
-  \STATE $\phantom{S^{+}_l \gets } - \left( R^{+}_1 + R^{+}_0 \right)/\left(2\sqrt{c}\right) + \mathtt{sgn} \cdot \left( R^{+}_0 - R^{+}_1 \right)/\left(2\sqrt{a}\right)$
-  \STATE $         S^{-}_l \gets     \left( R^{-}_1 \cdot l + R^{-}_{\mathrm{a},1} \right) \cdot T^{-}_l + R^{-}_0 \cdot l \cdot T^{-}_{l-1}$
-  \STATE $\phantom{S^{-}_l \gets } - \left( R^{-}_1 + R^{-}_0 \right)/\left(2\sqrt{c}\right) + \mathtt{sgn} \cdot \left( R^{-}_0 - R^{-}_1 \right)/\left(2\sqrt{a}\right)$
-  \STATE $S_l \gets S^{+}_l + S^{-}_l$
-  \STATE ~
-  \STATE Use $T^{\pm}_l$ and $S^{\pm}_l$ in mode number loop over \texttt{analysum} and \texttt{analysum2}.
-  \STATE ~
-  \STATE Update $T^{\pm}_l$ and $T^{\pm}_{l-1}$ for next $l$:
-  \STATE $\mathtt{sgn} \gets -\mathtt{sgn}$
-  \STATE $T^{+}_{l-2} \gets T^{+}_{l-1}$
-  \STATE $T^{-}_{l-2} \gets T^{-}_{l-1}$
-  \STATE $T^{+}_{l-1} \gets T^{+}_l$
-  \STATE $T^{-}_{l-1} \gets T^{-}_l$
-  \STATE $T^{+}_l \gets \left[ \left( 2\sqrt{c} + \mathtt{sgn} \cdot 2\sqrt{a} \right) - (2\cdot (l+1)-1) \cdot d \cdot T^{+}_{l-1} - l \cdot a^{-} T^{+}_{l-2} \right]/\left( a^{+} \cdot (l+1) \right)$
-  \STATE $T^{-}_l \gets \left[ \left( 2\sqrt{c} + \mathtt{sgn} \cdot 2\sqrt{a} \right) - (2\cdot (l+1)-1) \cdot d \cdot T^{-}_{l-1} - l \cdot a^{+} T^{-}_{l-2} \right]/\left( a^{-} \cdot (l+1) \right)$
-  \STATE $T_l \gets T^{+}_l + T^{-}_l$
-\ENDFOR
+\Require results of Alg.~(\ref{alg:const_initial_T_pm_0}) and $\mathtt{mf}, \mathtt{nf}$
+\State $\mathtt{sgn} \gets 1$
+\For{$(l \gets 0 ; l \leq \mathtt{mf}+\mathtt{nf} ; l \gets l+1)$}
+  \State Compute $S^{+}_l$, $S^{-}_l$, $S_l$:
+  \State $         S^{+}_l \gets     \left( R^{+}_1 \cdot l + R^{+}_{\mathrm{a},1} \right) \cdot T^{+}_l + R^{+}_0 \cdot l \cdot T^{+}_{l-1}$
+  \State $\phantom{S^{+}_l \gets } - \left( R^{+}_1 + R^{+}_0 \right)/\left(2\sqrt{c}\right) + \mathtt{sgn} \cdot \left( R^{+}_0 - R^{+}_1 \right)/\left(2\sqrt{a}\right)$
+  \State $         S^{-}_l \gets     \left( R^{-}_1 \cdot l + R^{-}_{\mathrm{a},1} \right) \cdot T^{-}_l + R^{-}_0 \cdot l \cdot T^{-}_{l-1}$
+  \State $\phantom{S^{-}_l \gets } - \left( R^{-}_1 + R^{-}_0 \right)/\left(2\sqrt{c}\right) + \mathtt{sgn} \cdot \left( R^{-}_0 - R^{-}_1 \right)/\left(2\sqrt{a}\right)$
+  \State $S_l \gets S^{+}_l + S^{-}_l$
+  \State ~
+  \State Use $T^{\pm}_l$ and $S^{\pm}_l$ in mode number loop over \texttt{analysum} and \texttt{analysum2}.
+  \State ~
+  \State Update $T^{\pm}_l$ and $T^{\pm}_{l-1}$ for next $l$:
+  \State $\mathtt{sgn} \gets -\mathtt{sgn}$
+  \State $T^{+}_{l-2} \gets T^{+}_{l-1}$
+  \State $T^{-}_{l-2} \gets T^{-}_{l-1}$
+  \State $T^{+}_{l-1} \gets T^{+}_l$
+  \State $T^{-}_{l-1} \gets T^{-}_l$
+  \State $T^{+}_l \gets \left[ \left( 2\sqrt{c} + \mathtt{sgn} \cdot 2\sqrt{a} \right) - (2\cdot (l+1)-1) \cdot d \cdot T^{+}_{l-1} - l \cdot a^{-} T^{+}_{l-2} \right]/\left( a^{+} \cdot (l+1) \right)$
+  \State $T^{-}_l \gets \left[ \left( 2\sqrt{c} + \mathtt{sgn} \cdot 2\sqrt{a} \right) - (2\cdot (l+1)-1) \cdot d \cdot T^{-}_{l-1} - l \cdot a^{+} T^{-}_{l-2} \right]/\left( a^{-} \cdot (l+1) \right)$
+  \State $T_l \gets T^{+}_l + T^{-}_l$
+\EndFor
 \end{algorithmic}
 \end{algorithm}
 Note that in above algorithm,

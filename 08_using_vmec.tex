@@ -703,50 +703,120 @@ The result of this algorithm is a set of VMEC coordinates $(s,\theta',\zeta')$,
 which are on the same field line as the VMEC coordinates $(s,\theta,\zeta)$.
 
 \section{Inverse Coordinate Transform}
-The coordinate transform from VMEC coordinates~$(s,\theta,\zeta)$ into cylindrical real-space coordinates
-$(R,\varphi,Z)$ is performed by evaluating the Fourier series for $R$ and $Z$:
+%
+Assume flux surface shapes are given in VMEC(-like) coordinates $R(s, \theta, \varphi)$ and $Z(s, \theta, \varphi)$
+as function of normalized toroidal flux $s$ with radius-like radial coordinate $\rho = \sqrt{s}$
+and angle-like poloidal coordinate $\theta$ and toroidal coordinate $\varphi$,
+equal to the cylindrical coordinates angle.
+%
+The representation is assumed to be as Fourier series for a number of discrete flux surfaces:
 \begin{align}
- R(s,\theta,\zeta) =&\, \sum\limits_{m,n} \left[
-   \hat{R}^\textrm{cos}_{m,n}(s) \cos(m \theta - n \zeta) +
-   \hat{R}^\textrm{sin}_{m,n}(s) \sin(m \theta - n \zeta)
- \right] \label{eqn:fwd_r} \\
- Z(s,\theta,\zeta) =&\, \sum\limits_{m,n} \left[
-   \hat{Z}^\textrm{cos}_{m,n}(s) \cos(m \theta - n \zeta) +
-   \hat{Z}^\textrm{sin}_{m,n}(s) \sin(m \theta - n \zeta)
- \right] \label{eqn:fwd_z} \, .
+ R(s_j, \theta, \varphi) =&\, \sum_{m,n} R^\textrm{cos}_{mn}(s_j) \cos(m \theta - n n_\textrm{fp} \varphi) \label{eqn:r_of_flux_coords} \\
+ Z(s_j, \theta, \varphi) =&\, \sum_{m,n} Z^\textrm{sin}_{mn}(s_j) \sin(m \theta - n n_\textrm{fp} \varphi) \label{eqn:z_of_flux_coords}
 \end{align}
-For stellarator-symmetric geometries, only the Fourier coefficients
-$\hat{R}^\textrm{cos}_{m,n}$ and $\hat{Z}^\textrm{sin}_{m,n}$ have to be considered.
-The toroidal coordinate~$\zeta$ in VMEC is the cylindrical angle per field period:
+with the number of toroidal field periods $n_\textrm{fp}$
+at the $j$-th flux surface, identified by radial coordinate $s_j$.
+%
+A point in space (inside or outside the plasma) is identified by cylindrical coordinates $(R_0, \varphi_0, Z_0)$.
+%
+The goal of the method described here is to find VMEC coordinates $(s, \theta, \varphi)$,
+for a given equilibrium and for now, assuming that the point under consideration is within the plasma volume,
+corresponding to the point's real-space coordinates $(R_0, \varphi_0, Z_0)$.
+
+\FloatBarrier
+\subsection{Basic Approach}
+%
+It is noted that there is no direct inverse of the coordinate parameterization
+in \eqn{r_of_flux_coords} and \eqn{z_of_flux_coords}.
+%
+In turn, the approach used here is to formulate this inverse coordinate transform as a non-linear minimization problem:
+\begin{align}
+ \min_{0 \leq s \leq 1, 0 \leq \theta < 2 \pi} \delta(s, \theta)
+\end{align}
+with the real-space distance~$\delta$ between the trial point $(R(s, \theta, \varphi_0), \varphi_0, Z(s, \theta, \varphi_0))$
+and the given point $(R_0, \varphi_0, Z_0)$, whose VMEC coordinates~$(s, \theta)$ are to be inferred:
 \begin{equation}
- \varphi = \frac{\zeta}{n_\textrm{fp}} \, .
+ \delta^2 (s, \theta) = \left[ R(s, \theta, \varphi_0) - R_0 \right]^2 + \left[ Z(s, \theta, \varphi_0) - Z_0 \right]^2 \, .
 \end{equation}
-The inversion of this coordinate transformation, namely finding $(s,\theta,\zeta)$
-for given cylindrical real-space coordinates $(R,\varphi,Z)$, is more involved~\cite{attenberger_1987}.
-Finding $\zeta$ is done as follows:
+%
+This implies that the minimization has to be carried out only in the poloidal cutplane over $(s, \theta)$
+at a fixed toroidal angle $\varphi_0$ for the given point.
+
+\FloatBarrier
+\subsection{Initial Guess}
+%
+A good initial guess $(s^{(-1)}, \theta^{(-1)})$ can greatly accelerate convergence of this iterative method.
+%
+Assume the magnetic axis location at toroidal angle $\varphi_0$ is given by $(R_\textrm{axis}(\varphi_0), Z_\textrm{axis}(\varphi_0))$ (see below).
+Then, the distance to the target point is given by $d$:
+\begin{align}
+ \Delta R_\textrm{axis} =&\, R_0 - R_\textrm{axis}(\varphi_0) \\
+ \Delta Z_\textrm{axis} =&\, Z_0 - Z_\textrm{axis}(\varphi_0) \\
+ d =&\, \sqrt{ \Delta R_\textrm{axis}^2 + \Delta Z_\textrm{axis}^2 } \, .
+\end{align}
+%
+Assume the minor radius of the plasma is approximated by $a_\textrm{eff}$ (see below).
+%
+Then, the initial guess for the radial coordinate can be approximated as $\rho^{(-1)} = d / a_\textrm{eff}$.
+%
+The initial guess for the poloidal coordinate~$\theta^{(-1)}$ is computed
+by computing the simple poloidal angle of the point in question
+with respect to the magnetic axis:
+\begin{align}
+ \theta^{(-1)} = \texttt{atan2}(\Delta Z_\textrm{axis}, \Delta R_\textrm{axis}) \, .
+\end{align}
+
+\subsubsection{Magnetic Axis Geometry}
+The magnetic axis is the central flux surface, which collapses to a filament.
+%
+Its geometry is given as a purely toroidal Fourier series,
+since the magnetic axis filament has no poloidal dependence:
+\begin{align}
+ R_\textrm{axis}(\varphi) = \sum_{n=0}^{\texttt{ntor}} R^\textrm{cos}_{0n}(0) \cos(n n_\textrm{fp} \varphi) \label{eqn:axis_r} \\
+ Z_\textrm{axis}(\varphi) = \sum_{n=0}^{\texttt{ntor}} Z^\textrm{sin}_{0n}(0) \sin(n n_\textrm{fp} \varphi) \label{eqn:axis_z} \, .
+\end{align}
+
+\subsubsection{Minor Radius Approximation}
+%
+In the simplest case, where only the $(m=1,n=0)$ harmonic is non‐zero,
+the cross‐section is an ellipse in the poloidal plane:
+\begin{align}
+ R(\theta) =&\, R^\textrm{cos}_{0,0} + R^\textrm{cos}_{1,0} \cos(\theta) \\
+ Z(\theta) =&\,                        Z^\textrm{sin}_{1,0} \sin(\theta)⁡
+\end{align}
+%
+If $R^\textrm{cos}_{1,0} = Z^\textrm{sin}_{1,0} = a$, that is a perfect circle of radius $a$.
+%
+If $R^\textrm{cos}_{1,0} \neq Z^\textrm{sin}_{1,0}$​, you get an ellipse with semi-axes $R^\textrm{cos}_{1,0}$​ and $Z^\textrm{sin}_{1,0}$.
+%
+The geometric mean of those semi-axes
 \begin{equation}
- \zeta = n_\textrm{fp} \varphi \, .
+ a_\textrm{eff} = \sqrt{R^\textrm{cos}_{1,0} \cdot Z^\textrm{sin}_{1,0}} \label{eqn:minor_radius_approximation}
 \end{equation}
-However, in order to find $s$ and $\theta$, a non-linear optimization has to be carried out
-in order to find those values of $s$ and $\theta$ for which
-the forward coordinate transformation in \eqn{fwd_r} and \eqn{fwd_z}
-yields the desired values of $R$ and $Z$.
+is exactly the radius of a circle having the same area~$A$ as that ellipse
+($A = \pi R^\textrm{cos}_{1,0} Z^\textrm{sin}_{1,0}$​, so $\pi a_\textrm{eff}^2 = A$).
+In plasma physics, the minor radius is often taken to be the radius of a circle of equal cross‐sectional area
+as the flux surface under consideration.
+
+\FloatBarrier
+\subsection{Iterative Algorithm}
+%
+A Newton-type iteration algorithm is employed in this context~\cite{attenberger_1987}.
 %
 For brevity, we consider in the following only $R(s,\theta)$ and $Z(s,\theta)$.
 %
-A Taylor expansion can be used to approximate $R$ and $Z$ around $s^{(k)}$ and $\theta^{(k)}$
+A Taylor expansion can be used to approximate $R_0$ and $Z_0$ around $s^{(k)}$ and $\theta^{(k)}$
 in the $k$-th iteration:
 \begin{align}
- R(s, \theta) =&\, R(s^{(k)},\theta^{(k)}) +
-                   (     s -      s^{(k)}) \frac{\partial R}{\partial      s}(s^{(k)}, \theta^{(k)}) +
-                   (\theta - \theta^{(k)}) \frac{\partial R}{\partial \theta}(s^{(k)}, \theta^{(k)}) + ... \label{eqn:approx_r} \\
- Z(s, \theta) =&\, Z(s^{(k)},\theta^{(k)}) +
-                   (     s -      s^{(k)}) \frac{\partial Z}{\partial      s}(s^{(k)}, \theta^{(k)}) +
-                   (\theta - \theta^{(k)}) \frac{\partial Z}{\partial \theta}(s^{(k)}, \theta^{(k)}) + ... \label{eqn:approx_z} \, .
+ R_0 =&\, R(s^{(k)},\theta^{(k)}) +
+          (     s -      s^{(k)}) \frac{\partial R}{\partial      s}(s^{(k)}, \theta^{(k)}) +
+          (\theta - \theta^{(k)}) \frac{\partial R}{\partial \theta}(s^{(k)}, \theta^{(k)}) + ... \label{eqn:approx_r} \\
+ Z_0 =&\, Z(s^{(k)},\theta^{(k)}) +
+          (     s -      s^{(k)}) \frac{\partial Z}{\partial      s}(s^{(k)}, \theta^{(k)}) +
+          (\theta - \theta^{(k)}) \frac{\partial Z}{\partial \theta}(s^{(k)}, \theta^{(k)}) + ... \label{eqn:approx_z} \, .
 \end{align}
 The following abbreviations are introduced:
 \begin{align}
- R              \equiv&\, R(s, \theta) \\
  R^{(k)}        \equiv&\, R(s^{(k)},\theta^{(k)}) \\
  R^{(k)}_s      \equiv&\, \frac{\partial R}{\partial      s}(s^{(k)}, \theta^{(k)}) \\
  R^{(k)}_\theta \equiv&\, \frac{\partial R}{\partial \theta}(s^{(k)}, \theta^{(k)})
@@ -757,8 +827,8 @@ If the Taylor expansions in \eqn{approx_r} and \eqn{approx_z} are terminated aft
 these expressions form a rank-2 linear system of equations:
 \begin{equation}
   \begin{pmatrix}
-    R - R^{(k)} \\
-    Z - Z^{(k)}
+    R_0 - R^{(k)} \\
+    Z_0 - Z^{(k)}
   \end{pmatrix}
   =
   \begin{pmatrix}
@@ -793,61 +863,454 @@ Then, the solution is given by:
     -Z^{(k)}_s      &  R^{(k)}_s
   \end{pmatrix}
   \begin{pmatrix}
-    R - R^{(k)} \\
-    Z - Z^{(k)}
+    R_0 - R^{(k)} \\
+    Z_0 - Z^{(k)}
   \end{pmatrix} \, .
 \end{equation}
 This can be used as an iteration equation for $s$ and $\theta$,
 where the values for the $(k+1)$-th iteration are given by:
 \begin{align}
  s^{(k+1)} =&\, s^{(k)} +
-   \frac{ Z^{(k)}_\theta \left( R - R^{(k)} \right) -
-          R^{(k)}_\theta \left( Z - Z^{(k)} \right) }{\tau^{(k)}} \\
+   \frac{ Z^{(k)}_\theta \left( R_0 - R^{(k)} \right) -
+          R^{(k)}_\theta \left( Z_0 - Z^{(k)} \right) }{\tau^{(k)}} \\
  \theta^{(k+1)} =&\, \theta^{(k)} +
-   \frac{ R^{(k)}_s \left( Z - Z^{(k)} \right) -
-          Z^{(k)}_s \left( R - R^{(k)} \right) }{\tau^{(k)}} \, .
+   \frac{ R^{(k)}_s \left( Z_0 - Z^{(k)} \right) -
+          Z^{(k)}_s \left( R_0 - R^{(k)} \right) }{\tau^{(k)}} \, .
 \end{align}
 The inverse coordinate transform is considered converged
-if the distance between the targeted point $(R,Z)$ and the model values $(R^{(k)},Z^{(k)})$
+if the distance between the targeted point $(R_0, Z_0)$ and the model values $(R^{(k)},Z^{(k)})$
 is smaller than a prescribed tolerance~$\epsilon$:
 \begin{equation}
- \left( R - R^{(k)} \right)^2 + \left( Z - Z^{(k)} \right)^2 < \epsilon \, .
+ \left( R_0 - R^{(k)} \right)^2 + \left( Z_0 - Z^{(k)} \right)^2 < \epsilon^2 \, .
 \end{equation}
 In case the iteration gives a worse result than the previous iterate,
 the step size is halved
 and an averaged value of the Jacobian is used:
 \begin{align}
  s^{(k+2)} =&\, s^{(k)} + \frac{1}{2}
-   \frac{ Z^{(k)}_\theta \left( R - R^{(k)} \right) -
-          R^{(k)}_\theta \left( Z - Z^{(k)} \right) }{0.75 \tau^{(k)} + 0.25 \tau^{(k+1)}} \label{eqn:adaptive_step_s} \\
+   \frac{ Z^{(k)}_\theta \left( R_0 - R^{(k)} \right) -
+          R^{(k)}_\theta \left( Z_0 - Z^{(k)} \right) }{0.75 \tau^{(k)} + 0.25 \tau^{(k+1)}} \label{eqn:adaptive_step_s} \\
  \theta^{(k+2)} =&\, \theta^{(k)} + \frac{1}{2}
-   \frac{ R^{(k)}_s \left( Z - Z^{(k)} \right) -
-          Z^{(k)}_s \left( R - R^{(k)} \right) }{0.75 \tau^{(k)} + 0.25 \tau^{(k+1)}} \label{eqn:adaptive_step_u} \, .
+   \frac{ R^{(k)}_s \left( Z_0 - Z^{(k)} \right) -
+          Z^{(k)}_s \left( R_0 - R^{(k)} \right) }{0.75 \tau^{(k)} + 0.25 \tau^{(k+1)}} \label{eqn:adaptive_step_u} \, .
 \end{align}
 This process can be repeated as necessary
 until a new iterate for $s$ and $\theta$ is found
 which reduces the objective.
 
-% {\color{red} TODO: write up concrete radial interpolation method: \\
-%   parity-aware radial interpolation
-%   in product Fourier basis
-%   with symmetry-reflected entries
-%   to get correct boundary condition at the axis.}
+\FloatBarrier
+\subsection{Radial Derivative of VMEC Flux Surface Geometry}
+%
+One key point to consider when working with flux surface geometries from VMEC
+is the interpolation of the flux surface geometry and quantities on them
+in the radial direction.
+%
+This is because VMEC solves only for discrete flux surfaces
+and uses finite differences in the radial direction,
+which leaves it to the user to choose how to interpolate quantities between flux surfaces.
+%
+Here, an interpolation approach is described, which was found to work very well in general,
+and in particular for the coordinate transform use case considered here.
 
-% {\color{red} TODO: write up concrete iteration method: \\
-%   * reset of step size once a successful step was taken again \\
-%   * plots of history for R, Z including bad steps (=dead ends in iteration) \\
-%   * a meaningful initial guess}
+The interpolation is set up over $\rho = \sqrt{s}$ as the radial coordinate.
+%
+Cubic splines are used with natural boundary conditions to set up the actual interpolation.
+%
+The interpolation and associated analytical derivatives are set up
+for the radial dependence of each Fourier coefficient in the representations
+\eqn{r_of_flux_coords} and \eqn{z_of_flux_coords} individually.
+%
+The boundary condition at the plasma boundary is the natural boundary condition provided by the spline implementation.
+%
+The boundary condition at the magnetic axis, i.e., at the center of the plasma,
+is adjusted to satisfy the poloidal parity of the respective Fourier coefficients to interpolate:
+\begin{align}
+ X_{m, n}(-s) =&\, \phantom{-} ~ X_{m, n}(s) \textrm{ if } m \textrm{ even } \\
+ X_{m, n}(-s) =&\,          -    X_{m, n}(s) \textrm{ if } m \textrm{ odd }
+\end{align}
+for $X \in \{ R^\textrm{cos}, Z^\textrm{sin} \}$.
+%
+Importantly, note that the parity of the interpolation at the magnetic axis
+only depends on the poloidal mode number and not on the phase (sin or cos)
+of the function to interpolate.
+%
+This regularization is particularly relevant for obtaining reliable
+inverse coordinate transforms near the magnetic axis, i.e.,
+inside of the first flux surface of the VMEC equilibrium under consideration.
 
-An extrapolation for $s > 1$ can be defined as follows:
-Let $R_{1,0}$ and $Z_{1,0}$ be proportional to $\rho$,
-and all other coefficients be constant for $\rho > 1$.
-This causes the flux surfaces to approach ellipses
-as $\rho \rightarrow \infty$.
-Note that a discontinuity in $\tau$ occurs at $\rho = 1$
-using this algorithm.
-Equations~(\ref{eqn:adaptive_step_s}) and~(\ref{eqn:adaptive_step_u}) 
-are very effective in dealing with this.
+The geometry of the flux surfaces in VMEC is represented on the ``full'' radial grid:
+\begin{equation}
+ s_j = \frac{j}{\texttt{ns} - 1} \textrm{ for } j = 0, 1, ..., (\texttt{ns} - 1)
+\end{equation}
+where $j=0$ represents the magnetic axis, i.e., the core of the plasma
+and $j=\texttt{ns} - 1$ represents the plasma boundary.
+
+The even and odd symmetry boundary conditions at the left end of the range
+in the radial direction (at the magnetic axis) can be enforced in some spline
+interpolation implementations.
+%
+Some spline interpolation implementations
+feature only natural boundary conditions at both ends.
+%
+One can mirror the data according to the desired symmetry
+and interpolate over that extended dataset
+and thereby still establish symmetry with the desired parity at the magnetic axis
+using such a spline implementation.
+%
+The following concrete formulation is used
+for even symmetry at the magnetic axis when interpolating Fourier coefficients on the full-grid:
+\begin{align}
+ \rho[\texttt{ns} - 1 + j] =&\, \sqrt{ \frac{j}{\texttt{ns} - 1} } \textrm{ for } 0 \leq j < \texttt{ns} \\
+ f[\texttt{ns} - 1 + j]    =&\, X[j]                               \textrm{ for } 0 \leq j < \texttt{ns} \\
+ \textrm{ and }             & \textrm{ then } \nonumber \\
+ \rho[\texttt{ns} - 1 - j] =&\, -\rho[\texttt{ns} - 1 + j]         \textrm{ for } 1 \leq j < \texttt{ns} \\
+ f[\texttt{ns} - 1 - j]    =&\, f[\texttt{ns} - 1 + j]             \textrm{ for } 1 \leq j < \texttt{ns}
+\end{align}
+where $\rho$ and $f$ are the arrays of length $2 \cdot \texttt{ns} - 1$ to be handed to the spline interpolation
+and $X$ is the Fourier coefficient array on the full grid to be interpolated.
+%
+For enforcing odd parity at the magnetic axis,
+the following formulation is used instead:
+\begin{align}
+ \rho[\texttt{ns} - 1 + j] =&\, \sqrt{ \frac{j}{\texttt{ns} - 1} } \textrm{ for } 0 \leq j < \texttt{ns} \\
+ f[\texttt{ns} - 1 + j]    =&\, X[j]                               \textrm{ for } 0 \leq j < \texttt{ns} \\
+ \textrm{ and }             & \textrm{ then } \nonumber \\
+ \rho[\texttt{ns} - 1 - j] =&\, -\rho[\texttt{ns} - 1 + j]         \textrm{ for } 1 \leq j < \texttt{ns} \\
+ f[\texttt{ns} - 1 - j]    =&\, -f[\texttt{ns} - 1 + j]            \textrm{ for } 1 \leq j < \texttt{ns} \label{eqn:mirror_odd}
+\end{align}
+where the only difference to the formulation for even parity
+is the negative sign in mirroring the data in \eqn{mirror_odd}.
+
+\FloatBarrier
+\subsection{Extrapolation beyond the Plasma Boundary}
+%
+VMEC only provides the flux surface geometry up to the plasma boundary.
+%
+Extrapolation of the geometry can be set up in a way that makes
+the extrapolated flux surface geometry to tend towards ellipses far away from the plasma.
+%
+This works for most plasma boundary shapes, but note that it is possible
+that the extrapolation scheme outlined below leads to extrapolated flux surfaces overlapping
+with the VMEC-provided flux surfaces, in particular close to the plasma boundary.
+%
+The extrapolation method is described in Ref.~\cite{attenberger_1987}.
+%
+The Fourier coefficients of the flux surface geometry are extrapolated
+to $\rho > 1$ as follows:
+\begin{align}
+ X_{mn}(\rho) =&\, \begin{cases}
+                    X_{mn}(1)          \cdot \rho  & \textrm{ for } (m,n)=(1,0) \\
+                    X_{mn}(1) \phantom{\cdot \rho} & \textrm{ else }
+                   \end{cases}
+\end{align}
+for $X \in \{ R^\textrm{cos}, Z^\textrm{sin} \}$.
+%
+Therefore, the radial derivatives are extrapolated as follows
+outside of the plasma boundary at $\rho > 1$:
+\begin{align}
+ \frac{\partial X_{mn}}{\partial \rho}(\rho) =&\, \begin{cases}
+                                                   X_{mn}(1) & \textrm{ for } (m,n)=(1,0) \\
+                                                   0         & \textrm{ else. }
+                                                  \end{cases}
+\end{align}
+
+\FloatBarrier
+\subsection{Actual Implementation of Inverse Coordinate Transform}
+%
+The actual implementation of the inverse coordinate transform for VMEC coordinates
+is suggested to always use the extrapolation for $\rho > 1$ introduced above.
+%
+If points outside the plasma boundary shall be marked as such,
+one can identify cases where $\rho > 1$ was found as radial VMEC coordinate
+for a given real-space point, and replace the inferred coordinates
+with $\hat{\rho} = \infty$ and $\hat{\theta} = \textrm{NaN}$, $\hat{\varphi} = \textrm{NaN}$.
+%
+Note that the actual implementation uses $\rho$ as the radial coordinate,
+since this was found to work better with the interpolation
+of flux surface geometry near the magnetic axis.
+%
+The actual implementation is presented in Algorithm~\ref{alg:inverse_coordinate_transform}.
+%
+\begin{algorithm}
+  \caption{Inverse Coordinate Transform $(R_0, \varphi_0, Z_0) \to (\rho, \theta, \varphi_0)$ with extrapolation}
+  \begin{algorithmic}[1]
+    \Require
+      $R_0, \varphi_0, Z_0$ ; $\epsilon > 0$ ; $n_\textrm{max} \in \mathbb{N}$
+
+    % Initialize squared tolerance
+    \State $\epsilon^2 \gets \epsilon \cdot \epsilon$
+
+    % Compute magnetic axis and distance to axis
+    \State $\{ R_\textrm{axis}(\varphi_0), Z_\textrm{axis}(\varphi_0) \} \gets \texttt{GetMagneticAxis}(\varphi_0)$
+    \State $\Delta R_\textrm{axis} \gets R_0 - R_\textrm{axis}(\varphi_0)$ ; $\Delta Z_\textrm{axis} \gets Z_0 - Z_\textrm{axis}(\varphi_0)$
+    \State $d \gets \sqrt{\Delta R_\textrm{axis}^2 + \Delta Z_\textrm{axis}^2}$
+
+    % Approximate minor radius and initial guess
+    \State $r_0 \gets \texttt{MinorRadiusApproximation}()$
+    \State $ \rho \gets d / r_0$
+    \State $\theta \gets \texttt{atan2}(\Delta Z_\textrm{axis}, \Delta R_\textrm{axis})$
+    \If{$\theta < 0$}
+      \State $\theta \gets \theta + 2\pi$
+    \EndIf
+
+    % Initialize iteration variables
+    \State $\delta^2 \gets +\infty$ ; ${\delta^2}^{(-1)} \gets +\infty$
+    \State $\beta \gets 1$
+    \State $\tau^{(-1)} \gets \textrm{NaN}$
+
+    \For{$i = 1$ to $n_\textrm{max}$}
+
+      % Evaluate forward map and residuals
+      \State Evaluate $R$, $\partial R / \partial \rho$ and $\partial R / \partial \theta$ at $(\rho, \theta)$ and analogously for $Z$
+      \State $\Delta R \gets R(\rho, \theta) - R_0$ ; $\Delta Z \gets Z(\rho, \theta) - Z_0$
+      \State ${\delta^2}^{(-1)} \gets \delta^2$ ; $\delta^2 \gets \Delta R^2 + \Delta Z^2$
+      \If{$\delta^2 < \epsilon^2$}
+        \State \textbf{break}
+      \EndIf
+
+      % Compute Jacobian determinant
+      \State $\tau^{(-1)} \gets \tau$
+      \State $\tau \gets \partial R / \partial \rho (\rho, \theta) \cdot \partial Z / \partial \theta (\rho, \theta) - \partial R / \partial \theta (\rho, \theta) \cdot \partial Z / \partial \rho (\rho, \theta)$
+      \If{$i=1$}
+        \State $\tau^{(-1)} \gets \tau$
+      \EndIf
+
+      % Handle case of un-successful step - distance to target increased -> mix Jacobian with previous Jacobian and reduce step length
+      \If{$\delta^2 > {\delta^2}^{(-1)}$}
+        \State $\tau \gets 0.75\,\tau^{(-1)} + 0.25\,\tau$ ; $\beta \gets \beta/2$
+      \Else
+        % Restore original step length in case of a successful step
+        \State $\beta \gets 1$
+      \EndIf
+
+      % Compute next iterate via Newton-like update
+      \State $\rho   \gets \rho   - \beta \left[\partial Z / \partial \theta (\rho, \theta) \cdot \Delta R - \partial R / \partial \theta (\rho, \theta) \cdot \Delta Z \right] / \tau$
+      \State $\theta \gets \theta - \beta \left[\partial R / \partial \rho   (\rho, \theta) \cdot \Delta Z - \partial Z / \partial \rho   (\rho, \theta) \cdot \Delta R \right] / \tau$
+
+      % Handle crossing over axis
+      \If{$\rho < 0$}
+        \State $\theta \gets \theta + \pi$ ; $\rho \gets -\rho$
+      \EndIf
+
+      % Make sure \theta stays within [0, 2 pi]
+      \While{$\theta < 0$}
+        \State $\theta \gets \theta + 2 \pi$
+      \EndWhile
+      \State $\theta \gets \theta \bmod 2 \pi$
+
+    \EndFor
+
+    \State \Return $(\rho, \theta, \varphi_0)$
+  \end{algorithmic}
+  \label{alg:inverse_coordinate_transform}
+\end{algorithm}
+%
+Note that the step is taken in the ``reverse'' direction,
+which is probably required to incorporate the negative Jacobian used in the VMEC coordinate system.
+%
+The method $\texttt{GetMagneticAxis}(\varphi_0)$ implements \eqn{axis_r} and \eqn{axis_z}.
+%
+The method $\texttt{MinorRadiusApproximation}()$ implements \eqn{minor_radius_approximation}.
+
+\FloatBarrier
+\subsection{Testing Strategy}
+%
+The functionality provided by this inverse coordinate algorithm is actually quite fundamental
+to stellarator modeling and data analysis.
+%
+It is therefore used in quite a number of places of the overall stellarator toolchain.
+%
+Therefore, this algorithm deserves significant, robust testing
+in order to get an implementation ready for production use.
+
+%
+This section outlines a testing strategy that has proven sufficiently thorough
+to get an implementation ready for large-scale use in data analysis for Wendelstein~7-X.
+%
+Credit for thinking out this testing strategy goes to Oliver Ford at IPP Greifswald.
+%
+This algorithm should be tested on a number of different VMEC equilibria,
+which capture typical plasma shapes occuring in the context
+where this coordinate transform algorithm is supposed to be used.
+%
+Random number generation is used to come up with test point coordinates.
+%
+It is important for debuggability to ensure proper random seed management
+in the testing harness in order to be able to debug errors which occur also very late in a testing cycle,
+which would be otherwise very hard to reproduce.
+%
+The tests are carried out it batches of points,
+which each are generated with their own random seed,
+which is drawn from a random number generator themselves (seeded with the ``seed of seeds'').
+%
+This multi-layer random number generation allows to reproduce errors
+in a given batch of test points quicker than if all points are tested in a single sequence,
+since the random number generator does not have to go through generating
+all point coordinates starting from a given seed,
+but only needs to go through number in given batch
+to reproduce an error that occured in that batch.
+%
+Unit testing of the implementation is done in 10 batches of 1000 points each.
+%
+Extended testing to catch rare errors and really ensure that an implementation
+is ready for production use should run at least 10000 batches of 5000 test points each.
+
+Radial derivatives of the flux surface geometry are inaccurate near the plasma boundary,
+due to the (assumed chosen) natural boundary condition for the spline there.
+%
+Therefore, the radial displacement of test points near the plasma boundary
+is done via the tangent vector in poloidal direction,
+whose components $(\partial R / \partial \theta, \partial Z / \partial \theta)$
+can be computed analytically from the Fourier series representation of $R$ and $Z$.
+%
+This tangent vector is then rotated by 90 degrees into the perpendicular orientation
+by swapping its components and inverting one of them (see below).
+
+The inverse coordinate transform algorithm presented here
+is an iterative method with a user-prescribed (but usually chosen statically for a given application) convergence tolerance.
+%
+This means that it cannot be expected that the real space point
+corresponding to inferred VMEC coordinates is closer to the target point in distance
+than the prescribed convergence tolerance.
+%
+It is therefore imperative to avoid false negatives during testing of this algorithm
+to compute the real-space distance between the point corresponding to the inferred coordinates
+and the target point.
+%
+More importantly, if a test is made to check if a point is tested that was supposed to be inside the plasma boundary
+actually is inferred to be inside the plasma boundary,
+the test point has to be placed at least as far away from the plasma boundary towards the inside of the plasma
+as the convergence tolerance distance is specified in the coordinate transform.
+%
+Otherwise, the inferred point may be within the convergence tolerance radius
+around the target point, but fall just outside the plasma boundary,
+even though the original point was inside the plasma boundary,
+and an unsuitably-setup test would fail.
+
+The inverse coordinate transform algorithm is tested then on a few different cases:
+\begin{enumerate}
+ \item points equally distributed in $(\rho, \theta, \varphi)$ space, i.e., anywhere within the plasma volume;
+ \item points close to the magnetic axis
+       - this particularly stresses the coordinate interpolation near the magnetic axis;
+ \item points close the plasma boundary, but still predictably within the plasma boundary; and
+ \item points close the plasma boundary, but already predictably outside of the plasma boundary
+       - this particularly tests the coordinate extrapolation.
+\end{enumerate}
+%
+For each of these cases, real-space cylindrical coordinates of test points~$[R_0, \varphi_0, Z_0]$
+are made available. For points sampled close to the plasma boundary (cases 3 and 4),
+an additional flag~\texttt{outside\_flag} is returned, which indicates if a given point is supposed
+to be located inside the plasma boundary or not.
+
+The testing procedure then is orchestrated as follows:
+\begin{enumerate}
+ \item Sample random test point coordinates~$[R_0, \varphi_0, Z_0]$ according to a method randomly selected from above list of test cases.
+ \item Use the inverse coordinate transform algorithm under test to obtain the corresponding VMEC coordinates~$[\rho, \theta, \varphi]$.
+ \item Transform the obtained VMEC coordinates back into cylindrical coordinates~$[R, \varphi, Z]$.
+ \item Test if the returned value for $\varphi$ matches $\varphi_0$ - they should be bit-identical.
+ \item If the extrapolation is inhibited by replacing the VMEC coordinates of points outside of the plasma boundary
+       with $\rho = +\infty$, it is checked that a provided \texttt{outside\_flag} (see below) is consistent with the point
+       actually being inferred as inside or outside the plasma boundary.
+ \item Compute the Eucledian distance between $(R_0, Z_0)$ and $(R, Z)$ and make sure it is below the convergence tolerance $\epsilon$.
+       If not, consider the test failed.
+ \item Repeat all steps above for every test case in the current batch.
+ \item Repeat all steps above for every batch in the whole set of test points.
+\end{enumerate}
+%
+The random generation of test points for each of the four cases is presented next:
+%
+\subsubsection{Points Equally Distributed in the Plasma Volume}
+%
+The points equally distributed in the plasma volume are generated as follows:
+\begin{align}
+  %
+  % sample normalized flux coordinate in [0,1]
+  s &\sim \mathcal{U}(0,1)\\
+  %
+  % sample poloidal angle in [0,2\pi]
+  \theta &\sim \mathcal{U}(0,2\pi)\\
+  %
+  % sample toroidal angle in [0,2\pi]
+  \varphi_0 &\sim \mathcal{U}(0,2\pi)\\
+  %
+  % map to cylindrical coordinates via the inverse transform
+  (R_0, \varphi_0, Z_0) &= \texttt{ToCylinderCoordinates}\bigl(s, \theta, \varphi_0 \bigr)
+\end{align}
+%
+where \texttt{ToCylinderCoordinates} implements \eqn{r_of_flux_coords} and \eqn{z_of_flux_coords}.
+
+
+\subsubsection{Points Close to the Magnetic Axis}
+%
+Test points close to the magnetic axis are generated as follows:
+\begin{align}
+  %
+  % approximate minor radius
+  a_\textrm{eff} &= \texttt{MinorRadiusApproximation}() \\
+  %
+  % small reference distance along minor radius
+  d &= \frac{a_\textrm{eff}}{10} \\
+  %
+  % random radial and vertical offsets in [0,d]
+  dr &\sim \mathcal{U}(0,d) \\
+  dz &\sim \mathcal{U}(0,d) \\
+  %
+  % random toroidal angle in [0,2π]
+  \varphi_0 &\sim \mathcal{U}(0,2\pi) \\
+  %
+  % magnetic axis coordinates at this toroidal angle
+  \bigl[R_{\mathrm{axis}}(\varphi_0),\,Z_{\mathrm{axis}}(\varphi_0)\bigr] &= \texttt{GetMagneticAxis}(\varphi_0) \\
+  %
+  % construct test point near the axis
+  R_{0} &= R_{\mathrm{axis}}(\varphi) + dr \\
+  Z_{0} &= Z_{\mathrm{axis}}(\varphi) + dz \, .
+\end{align}
+
+
+\subsubsection{Points Close to the Plasma Boundary}
+
+\begin{align}
+%
+% random poloidal angle on boundary
+\theta_0 &\sim \mathcal{U}(0,2\pi)\\
+%
+% random toroidal angle on boundary
+\varphi_0 &\sim \mathcal{U}(0,2\pi)\\
+%
+% signed offset distance from boundary (≥ requested accuracy)
+d & = \epsilon \cdot \bigl(\mathcal{U}(0,1) + 1\bigr)\\
+%
+% cylindrical coords on boundary surface s=1
+\bigl[R_{b},\,\varphi_{b},\,Z_{b}\bigr] &= \texttt{ToCylinderCoordinates}\bigl(1, \theta_0, \varphi_0 \bigr)\\
+%
+% arc‐length element along boundary curve
+\ell & = \sqrt{\bigl(dR/d\theta\bigr)^{2} + \bigl(dZ/d\theta\bigr)^{2}}\\
+%
+% perpendicular displacements of magnitude d
+dR_{\perp} & = \frac{dZ/d\theta}{\ell}\,d\\
+%
+dZ_{\perp} & = -\,\frac{dR/d\theta}{\ell}\,d\\
+%
+% final test point and outside flag (50\% inside, 50\% outside)
+\bigl[R_{0},\,\varphi_{0},\,Z_{0},\,\texttt{outside\_flag}\bigr] &=
+\begin{cases}
+\bigl[R_{b}-dR_{\perp},\,\varphi_{b},\,Z_{b}-dZ_{\perp},\, \texttt{false} \bigr] \textrm{ in 50 \% of cases }  \\
+\bigl[R_{b}+dR_{\perp},\,\varphi_{b},\,Z_{b}+dZ_{\perp},\, \texttt{true } \bigr] \textrm{ in 50 \% of cases }
+\end{cases}
+\end{align}
+%
+where $(dR_{\perp}, dZ_{\perp})$ is the outward-facing unit vector on the plasma boundary
+and \texttt{outside\_flag} indicates to the test harness if a given test point
+is supposed to be inside the plasma boundary or outside of it.
+
+
+
+
+
+
+
+
+
 
 % \section{Computing the Magnetic Field}
 % This section introduces how to compute the magnetic field from a VMEC equilibrium.
