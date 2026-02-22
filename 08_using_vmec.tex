@@ -1319,3 +1319,66 @@ is supposed to be inside the plasma boundary or outside of it.
 % {\color{red} TODO:
 % R * Btor towards axis - is constant? Attenberger check...
 % }
+
+\FloatBarrier
+\section{Calculation of \texorpdfstring{$\nabla\alpha$}{grad-alpha} from VMEC equilibria}
+%
+But how do we get $\nabla\alpha$ or $\mathbf{\hat{e}}^\alpha$,
+if not through the easily computable magnetic field direction and flux surface normal?
+%
+We can go via the angle definition, $\alpha = \theta - \iota\phi$ and get~\cite{plunk_collisionless_2014}:
+\begin{align}
+ \nabla\alpha = \nabla\theta - \iota\nabla\phi - \iota'\phi\nabla u_r \, ,
+\end{align}
+where $u_r$ is any (radial) coordinate and $\iota' = d\iota/du_r$.
+%
+Unfortunately, this is only true if the poloidal and toroidal angles are straight-fieldline-coordinates
+(i.e. coordinates in which field lines are straight lines),
+which is not the case for VMEC coordinates.
+%
+To transform to according coordinates, a stream function $\lambda(s,\theta_v, \phi)$ is necessary~\cite{stella_doc}:
+\begin{align}
+ \theta = \theta_v + \lambda(s,\theta_v, \phi) \, ,
+\end{align}
+where $\theta_v$ is the VMEC poloidal angle and
+$\theta$ is a straight-fieldline-coordinate together with $\phi$ and $s$,
+which are unchanged.
+%
+We then get $\alpha = \theta_v + \lambda - \iota\phi$ and accordingly~\cite{stella_doc}:
+\begin{align}
+    \nabla\alpha &= \nabla(\theta_v + \lambda - \iota\phi) \\
+    &=   \bigg(\frac{\partial\lambda}{\partial s}
+       - \phi\frac{d\iota}{ds}\bigg)\nabla s
+       + \bigg(1 + \frac{\partial\lambda}{\partial\theta_v}\bigg)\nabla\theta_v
+       + \bigg(-\iota + \frac{\partial\lambda}{\partial\phi}\bigg)\nabla\phi \, .
+\end{align}
+%
+Find the relevant part in stella diagnostic code
+\href{https://github.com/stellaGK/stella/blob/master/POST_PROCESSING/stellapy/data/geometry/calculate_geometricQuantitiesVMEC.py#L738}{here}.
+
+The stream function $\lambda$ is expressed as a Fourier series:
+\begin{align}
+ \lambda(s, \theta_v, \phi) = \sum_{m=0}^M\sum_{n=-N}^{N}\hat{\lambda}_{m,n}^{\sin}(s)\sin{(m\theta - nN_\mathrm{fp}\phi)} \, ,
+\end{align}
+where $\hat{\lambda}_{m,n}^{\sin}(s)$ are the Fourier coefficients given in the VMEC output on a $(n_s, M\times 2N)$ grid.
+%
+From this, we get analytical expressions for the partial derivatives with respect to $\theta_v$ and $\phi$,
+which can directly be calculated from the Fourier coefficients~\cite{stella_doc}:
+\begin{align}
+ \frac{\partial\lambda}{\partial\theta_v}(s, \theta_v, \phi) &=
+   \sum_{m=0}^M\sum_{n=-N}^{N}
+     m\hat{\lambda}_{m,n}^{\sin}(s)\cos{(m\theta - nN_\mathrm{fp}\phi)} \\
+ \frac{\partial\lambda}{\partial\phi}(s, \theta_v, \phi) &=
+   \sum_{m=0}^M\sum_{n=-N}^{N}
+     -nN_\mathrm{fp}\hat{\lambda}_{m,n}^{\sin}(s)\cos{(m\theta - nN_\mathrm{fp}\phi)} \, .
+\end{align}
+%
+The derivative with respect to $s$ can be pulled into the sum,
+but needs be to calculated numerically based on the available $n_s$ grid of Fourier coefficients:
+\begin{align}
+ \frac{\partial\lambda}{\partial s}(s, \theta_v, \phi) &=
+   \sum_{m=0}^M\sum_{n=-N}^{N}
+     \bigg[ \frac{\partial}{\partial s}\hat{\lambda}_{m,n}^{\sin}(s) \bigg] \sin{(m\theta - nN_\mathrm{fp}\phi)} \\
+ \frac{\partial}{\partial s}\hat{\lambda}_{m,n}^{\sin}(s) &\approx
+   \frac{\hat{\lambda}_{m,n}^{\sin}[i_s +1] - \hat{\lambda}_{m,n}^{\sin}[i_s]}{\Delta s} \, .
+\end{align}
