@@ -421,14 +421,20 @@ For $m=0$, it thus follows:
      \sqrt{ 1 - \beta_2 \rho \cos(\theta) }
      \,\mathrm{d}\theta
 \end{align}
+%
 This is a complete elliptic integral
 and can therefore be evaluated analytically.
-% as:
-% \begin{align}
-%  \hat{R}^\textrm{cos}_0(\rho)
-%  =&\,
-%  TODO
-% \end{align}
+%
+Gradshteyn-Ryshik can help us out here with its 3.671.4:
+\begin{align}
+ \int\limits_0^\pi \sqrt{a + b \cos(x)} \,\textrm{d}x
+ =
+ 2 \sqrt{a + b} \,\mathbf{E}\left( \sqrt{\frac{2 b}{a + b}} \right)
+ \textrm{ for }
+ a > b > 0
+\end{align}
+with the complete elliptic integral of the second kind~$\mathbf{E}$.
+%
 For $m>0$, we have:
 \begin{align}
  \hat{R}^\textrm{cos}_m(\rho)
