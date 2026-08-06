@@ -1382,3 +1382,35 @@ but needs be to calculated numerically based on the available $n_s$ grid of Four
  \frac{\partial}{\partial s}\hat{\lambda}_{m,n}^{\sin}(s) &\approx
    \frac{\hat{\lambda}_{m,n}^{\sin}[i_s +1] - \hat{\lambda}_{m,n}^{\sin}[i_s]}{\Delta s} \, .
 \end{align}
+
+\FloatBarrier
+\section{Summary of Coordinate Sign Conventions} \label{sec:sign-conventions}
+%
+In VMEC, the toroidal angle, whether it is $\phi$ or $\zeta$
+(the latter is simply the rescaling of $\phi$ by a positive integer, see \eqn{zeta}),
+increases counter-clockwise when the plasma is viewed from above,
+which results in a right-handed cylindrical coordinate system $(R, \phi, Z)$.
+
+The poloidal angle $\theta$ increases from the outboard to the inboard side over the top of the plasma,
+resulting in a left-handed toroidal coordinate system $(s, \theta, \phi)$.
+
+Due to the different handedness, the Jacobian of the transformation between the toroidal flux
+coordinates and cylindrical coordinates is negative;
+this is reflected in the output variable \texttt{signgs}, which is fixed to $-1$~\cite{landreman_vmec_signs}.
+
+A positive value of \texttt{phiedge}, the toroidal flux enclosed by the LCFS,
+corresponds to the magnetic field pointing in the $\nabla\zeta$ direction,
+i.e., counter-clockwise when viewed from above.
+In fixed-boundary mode, the sign of \texttt{phiedge} determines the orientation of the magnetic field.
+In free-boundary mode, the sign of \texttt{phiedge} should be chosen according to the orientation
+of the vacuum magnetic field produced by the coils.
+For instance, coils with counter-clockwise currents, which produce a toroidal magnetic field
+in the clockwise direction (viewed from above), correspond to a negative \texttt{phiedge}. In VMEC++ free-boundary, the wrong input sign will trigger the error message:
+``\texttt{rBtor} and \texttt{bSubVVac} must have the same sign
+- maybe flip the sign of \texttt{phiedge} or the sign of the coil currents''.
+The sign of \texttt{rBtor}, which is the total poloidal current at the LCFS, follows the sign of \texttt{phiedge},
+while the sign of \texttt{bSubVVac}, which is the vacuum-side poloidal current contribution, is determined by the coils.
+
+The signs of the output quantities \texttt{phi} and \texttt{phipf} are the same as \texttt{phiedge},
+while the sign of the output toroidal flux quantity \texttt{phips} differs from \texttt{phiedge}
+by the factor \texttt{signgs}, i.e., it has the opposite sign~\cite{landreman_vmec_signs}.
